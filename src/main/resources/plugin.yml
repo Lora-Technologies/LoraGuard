@@ -1,0 +1,43 @@
+name: LoraGuard
+version: ${version}
+main: dev.loratech.guard.LoraGuard
+api-version: '1.21'
+authors:
+  - LoraTechnologies
+description: Advanced AI-powered chat moderation plugin
+website: https://loratech.dev
+softdepend:
+  - PlaceholderAPI
+
+commands:
+  loraguard:
+    description: Main command for LoraGuard
+    aliases: [lg, guard, chatmod]
+    permission: loraguard.admin
+
+  report:
+    description: Report a player
+    usage: /report <player> <reason>
+    permission: loraguard.report
+
+  clearchat:
+    description: Clears the global chat
+    usage: /clearchat
+    permission: loraguard.clearchat
+
+permissions:
+  loraguard.admin:
+    description: Full access to LoraGuard
+    default: op
+  loraguard.report:
+    description: Report a player
+    default: true
+  loraguard.bypass:
+    description: Bypass chat moderation
+    default: false
+  loraguard.notify:
+    description: Receive violation notifications
+    default: op
+  loraguard.gui:
+    description: Access to GUI menu
+    default: op

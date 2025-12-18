@@ -1,0 +1,113 @@
+prefix: "&8[&bLoraGuard&8] "
+
+moderation:
+  blocked: "&cYour message was blocked due to inappropriate content!"
+  warning: "&eWarning! Your message may contain inappropriate content."
+  category-detected: "&7Detected category: &c{category}"
+
+punishments:
+  warn:
+    message: "&eYou received a warning! &7Reason: &f{reason}"
+    broadcast: "&e{player} &7received a warning. &8(Warning #{count})"
+  mute:
+    message: "&cYou have been muted! &7Duration: &f{duration} &7Reason: &f{reason}"
+    broadcast: "&c{player} &7has been muted. &8(Duration: {duration})"
+    cannot-speak: "&cYou are muted! &7Remaining: &f{remaining}"
+  kick:
+    message: "&cYou have been kicked!\n\n&7Reason: &f{reason}\n&7Please follow the rules."
+    broadcast: "&c{player} &7has been kicked."
+  ban:
+    message: "&4You have been banned!\n\n&7Reason: &f{reason}\n&7Duration: &f{duration}\n\n&7Appeal at: &fdiscord.gg/example"
+    broadcast: "&4{player} &7has been banned. &8(Duration: {duration})"
+
+filters:
+  spam: "&cDon't spam! Stop sending the same message repeatedly."
+  flood: "&cYou're sending messages too fast! Slow down."
+  caps: "&ePlease don't use CAPS LOCK."
+  link: "&cLink sharing is not allowed!"
+
+commands:
+  reload: "&aConfiguration files reloaded!"
+  toggle-on: "&aModeration system enabled!"
+  toggle-off: "&cModeration system disabled!"
+  stats:
+    header: "&b&lLoraGuard Statistics"
+    total-violations: "&7Total violations: &f{count}"
+    today-violations: "&7Today's violations: &f{count}"
+    cache-size: "&7Cache size: &f{count}"
+    api-status: "&7API status: {status}"
+  history:
+    header: "&b&l{player} - Violation History"
+    entry: "&8[&7{date}&8] &c{category} &8- &7{message}"
+    empty: "&7This player has no violation history."
+  clear:
+    success: "&aViolation history cleared for {player}!"
+    not-found: "&cPlayer not found!"
+  whitelist:
+    added: "&a{player} added to trusted list!"
+    removed: "&c{player} removed from trusted list!"
+    already-added: "&ePlayer is already in the list!"
+    not-in-list: "&ePlayer is not in the list!"
+  mute:
+    success: "&a{player} has been muted! &7Duration: {duration}"
+    already-muted: "&ePlayer is already muted!"
+  unmute:
+    success: "&a{player} has been unmuted!"
+    not-muted: "&ePlayer is not muted!"
+  test:
+    checking: "&7Checking message..."
+    result-safe: "&aMessage is safe!"
+    result-flagged: "&cMessage flagged! &7Categories: &f{categories}"
+  report:
+    sent: "&aReport sent successfully! Admins will review it."
+    self: "&cYou cannot report yourself!"
+  clearchat:
+    broadcast: "&aChat has been cleared by {player}!"
+  setlang:
+    success: "&aLanguage changed to: &f{lang}"
+    invalid: "&cInvalid language! Available: tr, en"
+  no-permission: "&cYou don't have permission to use this command!"
+  usage: "&cUsage: &f{usage}"
+  player-not-found: "&cPlayer not found!"
+  help:
+    header: "&b&lLoraGuard &7- &fCommands"
+    reload: "&7/lg reload &8- &fReload configuration"
+    toggle: "&7/lg toggle &8- &fEnable/disable moderation"
+    stats: "&7/lg stats &8- &fView statistics"
+    history: "&7/lg history <player> &8- &fView player history"
+    clear: "&7/lg clear <player> &8- &fClear player history"
+    whitelist: "&7/lg whitelist <add|remove> <player> &8- &fManage whitelist"
+    mute: "&7/lg mute <player> [duration] &8- &fMute a player"
+    unmute: "&7/lg unmute <player> &8- &fUnmute a player"
+    test: "&7/lg test <message> &8- &fTest a message"
+    setlang: "&7/lg setlang <tr|en> &8- &fChange language"
+    gui: "&7/lg gui &8- &fOpen admin panel"
+
+notifications:
+  staff-alert: "&c&lInappropriate Content! &7{player}: &f{message}"
+  category: "&8Category: &c{category} &8(&f{score}&8)"
+
+gui:
+  main-menu:
+    title: "&8LoraGuard Control Panel"
+    stats: "&bStatistics"
+    players: "&ePlayer Management"
+    settings: "&aSettings"
+    logs: "&7Violation Logs"
+  player-menu:
+    title: "&8Player: {player}"
+    history: "&eViolation History"
+    punish: "&cPunish"
+    whitelist: "&aAdd to Trusted List"
+    clear: "&4Clear History"
+
+misc:
+  permanent: "Permanent"
+  seconds: "seconds"
+  minutes: "minutes"
+  hours: "hours"
+  days: "days"
+  online: "&aOnline"
+  offline: "&cOffline"
+  loading: "&7Loading..."
+  players-only: "&cThis command can only be used by players!"

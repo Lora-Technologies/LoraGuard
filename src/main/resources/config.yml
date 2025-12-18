@@ -1,0 +1,246 @@
+api:
+  # API Key for the AI service (FREE KEY: lora-free)
+  # AI servisi için API Anahtarı (ÜCRETSİZ KEY: lora-free)
+  key: "lora-free"
+  
+  # Base URL for the API endpoint
+  # API uç noktası için Temel URL
+  base-url: "https://api.loratech.dev/v1"
+  
+  # ============================================
+  # AVAILABLE MODELS / MEVCUT MODELLER
+  # ============================================
+  #
+  # FREE MODELS / UCRETSIZ MODELLER:
+  #   - gemini-2.5-flash-lite (Google Gemini)
+  #   - grok-4-1-fast-reasoning (xAI Grok)
+  #   - gpt-oss-120b (OpenAI OSS)
+  #
+  # PREMIUM MODELS / PREMIUM MODELLER:
+  #   Google Gemini: gemini-3-pro, gemini-3-flash, gemini-2.5-pro, gemini-2.5-flash
+  #   xAI Grok: grok-4-1-fast-non-reasoning, grok-code-fast-1, grok-4-fast-reasoning, grok-4-fast-non-reasoning
+  #   Anthropic Claude: claude-4.5-sonnet, claude-4.5-haiku
+  #   Meta Llama: llama-4-maverick, llama-4-scout
+  #   OpenAI OSS: gpt-oss-20b
+  #   Kimi K2: kimi-k2
+  #
+  # ============================================
+  
+  # AI Model to be used / Kullanılacak AI Modeli
+  model: "gemini-2.5-flash-lite"
+  
+  # Confidence threshold for detection (0.0 - 1.0)
+  # Tespit için güven eşiği (0.0 - 1.0)
+  threshold: 0.5
+  
+  # API request timeout in milliseconds
+  # Milisaniye cinsinden API istek zaman aşımı
+  timeout: 3000
+  
+  # Circuit Breaker settings
+  # Devre kesici ayarları (API hatalarında sistemi korumak için)
+  circuit-breaker:
+    enabled: true
+    # Number of failures before opening the circuit
+    # Devreyi açmadan önceki hata sayısı
+    failure-threshold: 5
+    # Time to wait before trying again (seconds)
+    # Tekrar denemeden önce beklenecek süre (saniye)
+    reset-seconds: 60
+
+database:
+  # Storage type: "sqlite" or "mysql"
+  # Depolama türü: "sqlite" veya "mysql"
+  type: "sqlite"
+  
+  # Database connection settings (only for MySQL)
+  # Veritabanı bağlantı ayarları (sadece MySQL için)
+  host: "localhost"
+  port: 3306
+  database: "loraguard"
+  username: "root"
+  password: ""
+  
+  # Connection pool settings
+  # Bağlantı havuzu ayarları
+  pool-size: 10
+  connection-timeout: 5000
+  idle-timeout: 600000
+  max-lifetime: 1800000
+
+cache:
+  # Enable or disable caching of results
+  # Sonuçların önbelleğe alınmasını etkinleştir veya devre dışı bırak
+  enabled: true
+  
+  # Cache expiration time in minutes
+  # Önbellek süresi (dakika cinsinden)
+  expire-minutes: 30
+  
+  # Maximum number of items in cache
+  # Önbellekteki maksimum öğe sayısı
+  max-size: 1000
+
+punishments:
+  # Escalation system for repeated violations
+  # Tekrarlanan ihlaller için kademeli ceza sistemi
+  # Format: Count: "Action"
+  # Format: Sayı: "Eylem"
+  escalation:
+    1: "warn"
+    3: "mute:10m"
+    5: "mute:1h"
+    7: "kick"
+    10: "ban:1d"
+    15: "ban:7d"
+    20: "ban:permanent"
+  
+  # Weights for different violation categories (Higher = more severe)
+  # Farklı ihlal kategorileri için ağırlıklar (Yüksek = daha şiddetli)
+  category-weights:
+    hate: 2
+    violence: 2
+    sexual: 3
+    self_harm: 2
+    harassment: 2
+    profanity: 1
+    spam: 1
+    scam: 3
+    toxicity: 1
+    bullying: 2
+    cheating: 1
+    doxxing: 5
+    advertising: 1
+    threats: 3
+    discrimination: 3
+    illegal: 4
+    inappropriate_username: 1
+    griefing: 1
+    irl_trading: 2
+
+  # Time in hours before a violation count decreases
+  # İhlal sayısının azalması için geçmesi gereken saat
+  violation-cooldown-hours: 24
+
+categories:
+  # Enable or disable specific detection categories
+  # Belirli tespit kategorilerini etkinleştir veya devre dışı bırak
+  enabled:
+    - hate
+    - violence
+    - sexual
+    - self_harm
+    - harassment
+    - profanity
+    - spam
+    - scam
+    - toxicity
+    - bullying
+    - cheating
+    - doxxing
+    - advertising
+    - threats
+    - discrimination
+    - illegal
+    - inappropriate_username
+    - griefing
+    - irl_trading
+
+blacklist:
+  # Local blacklist system
+  # Yerel kara liste sistemi
+  enabled: true
+  words:
+    - "badword1"
+    - "badword2"
+
+filters:
+  # Simple anti-spam filter
+  # Basit anti-spam filtresi
+  anti-spam:
+    enabled: true
+    # Maximum number of identical messages allowed
+    # İzin verilen maksimum aynı mesaj sayısı
+    max-same-messages: 3
+    # Timeframe in seconds to check for duplicates
+    # Tekrarları kontrol etmek için saniye cinsinden zaman aralığı
+    timeframe-seconds: 10
+  
+  # Anti-flood filter (too many messages in short time)
+  # Anti-flood filtresi (kısa sürede çok fazla mesaj)
+  anti-flood:
+    enabled: true
+    # Max messages allowed in timeframe
+    # Zaman aralığında izin verilen maksimum mesaj
+    max-messages: 5
+    # Timeframe in seconds
+    # Saniye cinsinden zaman aralığı
+    timeframe-seconds: 3
+  
+  # Caps-lock usage filter
+  # Büyük harf kullanım filtresi
+  caps-lock:
+    enabled: true
+    # Max percentage of caps allowed
+    # İzin verilen maksimum büyük harf yüzdesi
+    max-percentage: 70
+    # Minimum message length to check
+    # Kontrol edilecek minimum mesaj uzunluğu
+    min-length: 5
+    # Action: "lowercase" or "block"
+    # Eylem: "lowercase" (küçült) veya "block" (engelle)
+    action: "lowercase"
+  
+  # Link filter
+  # Link filtresi
+  links:
+    enabled: true
+    # Whitelisted domains
+    # İzin verilen alan adları
+    whitelist:
+      - "youtube.com"
+      - "youtu.be"
+      - "discord.gg"
+    # Action: "block", "warn", etc.
+    # Eylem: "block" (engelle), "warn" (uyar), vb.
+    action: "block"
+
+notifications:
+  # Send alerts to staff members
+  # Yetkililere uyarı gönder
+  staff-alert: true
+  
+  # Permission required to receive alerts
+  # Uyarıları almak için gereken yetki
+  staff-permission: "loraguard.notify"
+  
+  # Sound to play for staff (Minecraft sound name)
+  # Yetkililer için çalınacak ses (Minecraft ses adı)
+  sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
+  
+  # Discord webhook integration
+  # Discord webhook entegrasyonu
+  discord:
+    enabled: false
+    # Webhook URL for Discord channel
+    # Discord kanalı için Webhook URL'si
+    webhook-url: ""
+    # Color of the embed message
+    # Gömülü mesajın rengi
+    embed-color: "#FF0000"
+
+whitelist:
+  # Whitelist system to bypass checks
+  # Kontrolleri atlamak için beyaz liste sistemi
+  enabled: true
+  # Players who are whitelisted
+  # Beyaz listedeki oyuncular
+  players: []
+
+# Default language (en, tr, etc.)
+# Varsayılan dil (en, tr, vb.)
+language: "tr"
+
+# Enable debug mode for detailed logs
+# Detaylı loglar için hata ayıklama modunu etkinleştir
+debug: false

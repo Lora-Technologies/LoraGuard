@@ -1,0 +1,113 @@
+prefix: "&8[&bLoraGuard&8] "
+
+moderation:
+  blocked: "&cMesajın uygunsuz içerik tespit edildiği için engellendi!"
+  warning: "&eDikkat! Mesajın uygunsuz içerik içeriyor olabilir."
+  category-detected: "&7Tespit edilen kategori: &c{category}"
+
+punishments:
+  warn:
+    message: "&eUyarı aldın! &7Sebep: &f{reason}"
+    broadcast: "&e{player} &7uyarı aldı. &8({count}. uyarı)"
+  mute:
+    message: "&cSusturuldun! &7Süre: &f{duration} &7Sebep: &f{reason}"
+    broadcast: "&c{player} &7susturuldu. &8(Süre: {duration})"
+    cannot-speak: "&cSusturulmuş durumdasın! &7Kalan süre: &f{remaining}"
+  kick:
+    message: "&cSunucudan atıldın!\n\n&7Sebep: &f{reason}\n&7Lütfen kurallara uy."
+    broadcast: "&c{player} &7sunucudan atıldı."
+  ban:
+    message: "&4Sunucudan yasaklandın!\n\n&7Sebep: &f{reason}\n&7Süre: &f{duration}\n\n&7İtiraz için: &fdiscord.gg/example"
+    broadcast: "&4{player} &7sunucudan yasaklandı. &8(Süre: {duration})"
+
+filters:
+  spam: "&cSpam yapmayın! Aynı mesajı tekrar tekrar göndermeyin."
+  flood: "&cÇok hızlı mesaj gönderiyorsun! Biraz yavaşla."
+  caps: "&eLütfen CAPS LOCK kullanmayın."
+  link: "&cLink paylaşımı yasaktır!"
+
+commands:
+  reload: "&aConfig dosyaları yeniden yüklendi!"
+  toggle-on: "&aModerasyon sistemi aktif edildi!"
+  toggle-off: "&cModerasyon sistemi devre dışı bırakıldı!"
+  stats:
+    header: "&b&lLoraGuard İstatistikleri"
+    total-violations: "&7Toplam ihlal: &f{count}"
+    today-violations: "&7Bugünkü ihlal: &f{count}"
+    cache-size: "&7Önbellek boyutu: &f{count}"
+    api-status: "&7API durumu: {status}"
+  history:
+    header: "&b&l{player} - İhlal Geçmişi"
+    entry: "&8[&7{date}&8] &c{category} &8- &7{message}"
+    empty: "&7Bu oyuncunun ihlal geçmişi bulunmuyor."
+  clear:
+    success: "&a{player} için ihlal geçmişi temizlendi!"
+    not-found: "&cOyuncu bulunamadı!"
+  whitelist:
+    added: "&a{player} güvenilir listeye eklendi!"
+    removed: "&c{player} güvenilir listeden çıkarıldı!"
+    already-added: "&eOyuncu zaten listede!"
+    not-in-list: "&eOyuncu listede değil!"
+  mute:
+    success: "&a{player} susturuldu! &7Süre: {duration}"
+    already-muted: "&eOyuncu zaten susturulmuş!"
+  unmute:
+    success: "&a{player} için susturma kaldırıldı!"
+    not-muted: "&eOyuncu susturulmuş değil!"
+  test:
+    checking: "&7Mesaj kontrol ediliyor..."
+    result-safe: "&aMesaj güvenli!"
+    result-flagged: "&cMesaj işaretlendi! &7Kategoriler: &f{categories}"
+  report:
+    sent: "&aRapor başarıyla gönderildi! Yetkililer inceleyecektir."
+    self: "&cKendini raporlayamazsın!"
+  clearchat:
+    broadcast: "&aSohbet {player} tarafından temizlendi!"
+  setlang:
+    success: "&aDil değiştirildi: &f{lang}"
+    invalid: "&cGeçersiz dil! Kullanılabilir: tr, en"
+  no-permission: "&cBu komutu kullanma yetkiniz yok!"
+  usage: "&cKullanım: &f{usage}"
+  player-not-found: "&cOyuncu bulunamadı!"
+  help:
+    header: "&b&lLoraGuard &7- &fKomutlar"
+    reload: "&7/lg reload &8- &fAyarları yeniden yükle"
+    toggle: "&7/lg toggle &8- &fModerasyonu aç/kapat"
+    stats: "&7/lg stats &8- &fİstatistikleri görüntüle"
+    history: "&7/lg history <oyuncu> &8- &fOyuncu geçmişini görüntüle"
+    clear: "&7/lg clear <oyuncu> &8- &fOyuncu geçmişini temizle"
+    whitelist: "&7/lg whitelist <add|remove> <oyuncu> &8- &fGüvenilir listeyi yönet"
+    mute: "&7/lg mute <oyuncu> [süre] &8- &fOyuncuyu sustur"
+    unmute: "&7/lg unmute <oyuncu> &8- &fSusturmayı kaldır"
+    test: "&7/lg test <mesaj> &8- &fMesaj test et"
+    setlang: "&7/lg setlang <tr|en> &8- &fDil değiştir"
+    gui: "&7/lg gui &8- &fYönetim panelini aç"
+
+notifications:
+  staff-alert: "&c&lUygunsuz İçerik! &7{player}: &f{message}"
+  category: "&8Kategori: &c{category} &8(&f{score}&8)"
+
+gui:
+  main-menu:
+    title: "&8LoraGuard Yönetim Paneli"
+    stats: "&bİstatistikler"
+    players: "&eOyuncu Yönetimi"
+    settings: "&aAyarlar"
+    logs: "&7İhlal Logları"
+  player-menu:
+    title: "&8Oyuncu: {player}"
+    history: "&eİhlal Geçmişi"
+    punish: "&cCeza Ver"
+    whitelist: "&aGüvenilir Listeye Ekle"
+    clear: "&4Geçmişi Temizle"
+
+misc:
+  permanent: "Kalıcı"
+  seconds: "saniye"
+  minutes: "dakika"
+  hours: "saat"
+  days: "gün"
+  online: "&aÇevrimiçi"
+  offline: "&cÇevrimdışı"
+  loading: "&7Yükleniyor..."
+  players-only: "&cBu komut sadece oyuncular tarafından kullanılabilir!"

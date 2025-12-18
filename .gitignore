@@ -1,0 +1,37 @@
+# Gradle
+.gradle/
+build/
+gradle-*/
+gradle-8.12/
+gradle-8.12.zip
+
+# IDE - IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# IDE - Eclipse
+.classpath
+.project
+.settings/
+bin/
+
+# IDE - VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Runtime
+run/
+
+# Local config
+local.properties
