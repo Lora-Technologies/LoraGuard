@@ -44,7 +44,9 @@ tasks {
         relocate("okhttp3", "dev.loratech.guard.libs.okhttp3")
         relocate("okio", "dev.loratech.guard.libs.okio")
         relocate("com.zaxxer.hikari", "dev.loratech.guard.libs.hikari")
-        minimize()
+        minimize {
+            exclude(dependency("com.github.ben-manes.caffeine:caffeine:.*"))
+        }
     }
 
     build {
