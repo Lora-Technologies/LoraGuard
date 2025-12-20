@@ -644,6 +644,27 @@ public class DatabaseManager {
         return -1;
     }
 
+    public int decayWarnings(int hoursThreshold, int decayAmount) {
+        String sql;
+        if (isMySQL()) {
+            sql = "UPDATE player_data SET violation_points = GREATEST(0, violation_points - ?) " +
+                  "WHERE last_violation < DATE_SUB(NOW(), INTERVAL ? HOUR) AND violation_points > 0";
+        } else {
+            sql = "UPDATE player_data SET violation_points = MAX(0, violation_points - ?) " +
+                  "WHERE last_violation < datetime('now', '-' || ? || ' hours') AND violation_points > 0";
+        }
+        
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, decayAmount);
+            stmt.setInt(2, hoursThreshold);
+            return stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to decay warnings", e);
+            return 0;
+        }
+    }
+
     public boolean isConnected() {
         return dataSource != null && !dataSource.isClosed();
     }

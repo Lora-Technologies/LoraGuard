@@ -295,4 +295,60 @@ public class ConfigManager {
     public int getBulkOperationsLimit() {
         return config.getInt("bulk-operations.max-players", 50);
     }
+
+    public boolean isIpFilterEnabled() {
+        return config.getBoolean("filters.ip.enabled", true);
+    }
+
+    public List<String> getIpWhitelist() {
+        return config.getStringList("filters.ip.whitelist");
+    }
+
+    public boolean isSignModerationEnabled() {
+        return config.getBoolean("moderation.sign.enabled", true);
+    }
+
+    public boolean isBookModerationEnabled() {
+        return config.getBoolean("moderation.book.enabled", true);
+    }
+
+    public boolean isAnvilModerationEnabled() {
+        return config.getBoolean("moderation.anvil.enabled", true);
+    }
+
+    public boolean isCommandSpyEnabled() {
+        return config.getBoolean("moderation.command-spy.enabled", true);
+    }
+
+    public boolean isSlowmodeEnabled() {
+        return config.getBoolean("slowmode.enabled", false);
+    }
+
+    public int getSlowmodeDelay() {
+        return config.getInt("slowmode.delay-seconds", 3);
+    }
+
+    public String getStaffChatPermission() {
+        return config.getString("staffchat.permission", "loraguard.staffchat");
+    }
+
+    public boolean isMetricsEnabled() {
+        return config.getBoolean("metrics.enabled", true);
+    }
+
+    public boolean isWarningDecayEnabled() {
+        return config.getBoolean("punishments.warning-decay.enabled", true);
+    }
+
+    public int getWarningDecayHours() {
+        return config.getInt("punishments.warning-decay.hours", 168);
+    }
+
+    public int getWarningDecayAmount() {
+        return config.getInt("punishments.warning-decay.amount", 1);
+    }
+
+    public int getWarningDecayCheckMinutes() {
+        return config.getInt("punishments.warning-decay.check-minutes", 60);
+    }
 }

@@ -185,9 +185,12 @@ public class PunishmentManager {
                     staff.sendMessage(categoryInfo);
                     
                     try {
-                        org.bukkit.Sound sound = org.bukkit.Sound.valueOf(soundName);
-                        staff.playSound(staff.getLocation(), sound, 1.0f, 1.0f);
-                    } catch (IllegalArgumentException ignored) {}
+                        org.bukkit.NamespacedKey key = org.bukkit.NamespacedKey.minecraft(soundName.toLowerCase());
+                        org.bukkit.Sound sound = org.bukkit.Registry.SOUNDS.get(key);
+                        if (sound != null) {
+                            staff.playSound(staff.getLocation(), sound, 1.0f, 1.0f);
+                        }
+                    } catch (Exception ignored) {}
                 }
             }
         });

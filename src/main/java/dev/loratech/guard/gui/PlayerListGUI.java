@@ -39,7 +39,7 @@ public class PlayerListGUI extends AbstractGUI {
         ));
         
         for (int i = 0; i < Math.min(onlinePlayers.size(), inventorySize - 9); i++) {
-            inventory.setItem(i, createItem(Material.SKELETON_SKULL, "§7Loading...", "§7Please wait..."));
+            inventory.setItem(i, createItem(Material.SKELETON_SKULL, plugin.getLanguageManager().get("misc.loading"), plugin.getLanguageManager().get("misc.please-wait")));
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {

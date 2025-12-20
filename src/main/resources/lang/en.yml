@@ -4,6 +4,10 @@ moderation:
   blocked: "&cYour message was blocked due to inappropriate content!"
   warning: "&eWarning! Your message may contain inappropriate content."
   category-detected: "&7Detected category: &c{category}"
+  sign-blocked: "&cYour sign was blocked due to inappropriate content!"
+  book-blocked: "&cYour book was blocked due to inappropriate content!"
+  anvil-blocked: "&cThis item name is not allowed!"
+  command-blocked: "&cYour message was blocked due to inappropriate content!"
 
 punishments:
   warn:
@@ -13,6 +17,7 @@ punishments:
     message: "&cYou have been muted! &7Duration: &f{duration} &7Reason: &f{reason}"
     broadcast: "&c{player} &7has been muted. &8(Duration: {duration})"
     cannot-speak: "&cYou are muted! &7Remaining: &f{remaining}"
+    expired: "&aYour mute has expired! You can speak again."
   kick:
     message: "&cYou have been kicked!\n\n&7Reason: &f{reason}\n&7Please follow the rules."
     broadcast: "&c{player} &7has been kicked."
@@ -25,11 +30,25 @@ filters:
   flood: "&cYou're sending messages too fast! Slow down."
   caps: "&ePlease don't use CAPS LOCK."
   link: "&cLink sharing is not allowed!"
+  ip: "&cIP address sharing is not allowed!"
+  slowmode: "&cSlowmode is active! Please wait {seconds} seconds."
 
 commands:
   reload: "&aConfiguration files reloaded!"
   toggle-on: "&aModeration system enabled!"
   toggle-off: "&cModeration system disabled!"
+  staffchat:
+    format: "&8[&cStaff&8] &7{player}: &f{message}"
+    toggled-on: "&aStaff chat mode enabled! All your messages will go to staff chat."
+    toggled-off: "&cStaff chat mode disabled!"
+    usage: "&cUsage: /staffchat <message> or /staffchat to toggle"
+  slowmode:
+    enabled: "&aSlowmode enabled! Delay: {seconds} seconds."
+    disabled: "&cSlowmode disabled!"
+    already-enabled: "&eSlowmode is already enabled!"
+    already-disabled: "&eSlowmode is already disabled!"
+    invalid-range: "&cDelay must be between 1 and 300 seconds!"
+    invalid-number: "&cPlease enter a valid number!"
   stats:
     header: "&b&lLoraGuard Statistics"
     total-violations: "&7Total violations: &f{count}"
@@ -61,6 +80,7 @@ commands:
   report:
     sent: "&aReport sent successfully! Admins will review it."
     self: "&cYou cannot report yourself!"
+    cooldown: "&cPlease wait {seconds} seconds before reporting again."
   clearchat:
     broadcast: "&aChat has been cleared by {player}!"
   setlang:
@@ -82,10 +102,28 @@ commands:
     test: "&7/lg test <message> &8- &fTest a message"
     setlang: "&7/lg setlang <tr|en> &8- &fChange language"
     gui: "&7/lg gui &8- &fOpen admin panel"
+    slowmode: "&7/lg slowmode <on|off|set> [seconds] &8- &fManage slowmode"
+  bulk:
+    mute-success: "&a{count} players have been muted!"
+    unmute-success: "&a{count} players have been unmuted!"
+    no-targets: "&cNo valid targets found."
+    disabled: "&cBulk operations are disabled."
+  export:
+    started: "&7Exporting data..."
+    success: "&aExport completed! File: &f{file}"
+    failed: "&cExport failed!"
+  appeal:
+    list: "&7/lg appeal list &8- &fView pending appeals"
+    approve: "&7/lg appeal approve <id> &8- &fApprove an appeal"
+    deny: "&7/lg appeal deny <id> &8- &fDeny an appeal"
+    list-header: "&b&lPending Appeals ({count})"
+    list-entry: "&7#{id} &f{player} &8- &e{type}"
+    list-empty: "&7No pending appeals found."
 
 notifications:
   staff-alert: "&c&lInappropriate Content! &7{player}: &f{message}"
   category: "&8Category: &c{category} &8(&f{score}&8)"
+  command-spy-alert: "&c&l[CommandSpy] &7{player} used /{command}: &f{message}"
 
 gui:
   main-menu:
@@ -124,6 +162,15 @@ gui:
     whitelisted: "&7Whitelisted: {status}"
     yes: "&cYes"
     no: "&aNo"
+    sort:
+      title: "&e&lSort Players"
+      current: "&7Current: &f{mode}"
+      click-to-change: "&eClick to change sort mode"
+      name: "Name"
+      violations: "Violations"
+      muted: "Muted First"
+    refresh: "&a&lRefresh"
+    refresh-lore: "&7Click to refresh player list"
   logs:
     title: "&8Violation Logs"
     total:
@@ -176,40 +223,6 @@ gui:
       lore: "&7Clear all violation history"
     back: "&c&lBack"
     back-lore: "&7Return to player list"
-
-appeal:
-  approved: "&aYour appeal has been approved! {note}"
-  denied: "&cYour appeal has been denied. {note}"
-  approved-staff: "&a{player}'s appeal has been approved!"
-  denied-staff: "&c{player}'s appeal has been denied!"
-  staff-notify: "&e&lNew Appeal! &7{player} appealed their {type}. &8(ID: {id})"
-  cooldown: "&cPlease wait before submitting another appeal."
-  already-pending: "&cYou already have a pending appeal."
-  submitted: "&aYour appeal has been submitted!"
-  not-found: "&cAppeal not found."
-
-commands:
-  report:
-    cooldown: "&cPlease wait {seconds} seconds before reporting again."
-  bulk:
-    mute-success: "&a{count} players have been muted!"
-    unmute-success: "&a{count} players have been unmuted!"
-    no-targets: "&cNo valid targets found."
-    disabled: "&cBulk operations are disabled."
-  export:
-    started: "&7Exporting data..."
-    success: "&aExport completed! File: &f{file}"
-    failed: "&cExport failed!"
-  appeal:
-    list: "&7/lg appeal list &8- &fView pending appeals"
-    approve: "&7/lg appeal approve <id> &8- &fApprove an appeal"
-    deny: "&7/lg appeal deny <id> &8- &fDeny an appeal"
-
-punishments:
-  mute:
-    expired: "&aYour mute has expired! You can speak again."
-
-gui:
   pagination:
     previous: "&e« Previous Page"
     next: "&eNext Page »"
@@ -218,27 +231,11 @@ gui:
     total-items: "&7Total: {count} items"
     back: "&c&lBack"
     back-lore: "&7Return to previous menu"
-  player-list:
-    title: "&8Player Management"
-    yes: "&aYes"
-    no: "&cNo"
-    click-to-manage: "&eClick to manage this player"
-    violation-points: "&7Violations: &f{count}"
-    muted: "&7Muted: {status}"
-    whitelisted: "&7Whitelisted: {status}"
-    sort:
-      title: "&e&lSort Players"
-      current: "&7Current: &f{mode}"
-      click-to-change: "&eClick to change sort mode"
-      name: "Name"
-      violations: "Violations"
-      muted: "Muted First"
-    refresh: "&a&lRefresh"
-    refresh-lore: "&7Click to refresh player list"
   appeals:
     title: "&8Appeal Management"
     pending-count: "&e&l{count} Pending Appeals"
     pending-lore: "&7Click to view pending appeals"
+    pending-notice: "&e&l{count} pending!"
     type: "&7Type: &f{type}"
     date: "&7Date: &f{date}"
     reason-title: "&7Reason:"
@@ -264,6 +261,40 @@ gui:
     back: "&c&lBack"
     back-lore: "&7Return to appeal list"
 
+appeal:
+  approved: "&aYour appeal has been approved! {note}"
+  denied: "&cYour appeal has been denied. {note}"
+  approved-staff: "&a{player}'s appeal has been approved!"
+  denied-staff: "&c{player}'s appeal has been denied!"
+  staff-notify: "&e&lNew Appeal! &7{player} appealed their {type}. &8(ID: {id})"
+  cooldown: "&cPlease wait {seconds} seconds before submitting another appeal."
+  already-pending: "&cYou already have a pending appeal."
+  submitted: "&aYour appeal has been submitted!"
+  not-found: "&cAppeal not found."
+  disabled: "&cAppeal system is disabled."
+  invalid-type: "&cInvalid punishment type! Use: mute or ban"
+  no-punishment: "&cYou don't have an active {type} punishment to appeal."
+  failed: "&cFailed to create appeal. Please try again."
+  no-pending: "&cYou don't have any pending appeals."
+  no-appeals: "&cYou don't have any appeals."
+  usage:
+    header: "&b&lAppeal Commands"
+    create: "&7/appeal create <mute|ban> <reason> &8- &fCreate an appeal"
+    status: "&7/appeal status &8- &fCheck your pending appeal"
+    list: "&7/appeal list &8- &fView all your appeals"
+  status:
+    header: "&b&lYour Pending Appeal"
+    id: "&7Appeal ID: &f{id}"
+    type: "&7Punishment Type: &f{type}"
+    status: "&7Status: {status}"
+    reason: "&7Your Reason: &f{reason}"
+    pending-text: "&ePending"
+    approved-text: "&aApproved"
+    denied-text: "&cDenied"
+  list:
+    header: "&b&lYour Appeals ({count})"
+    entry: "&7#{id} &8- &f{type} &8- {status}"
+
 misc:
   permanent: "Permanent"
   seconds: "seconds"
@@ -273,4 +304,5 @@ misc:
   online: "&aOnline"
   offline: "&cOffline"
   loading: "&7Loading..."
+  please-wait: "&7Please wait..."
   players-only: "&cThis command can only be used by players!"

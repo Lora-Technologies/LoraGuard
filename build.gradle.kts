@@ -34,6 +34,7 @@ dependencies {
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("com.mysql:mysql-connector-j:8.3.0")
     implementation("org.mariadb.jdbc:mariadb-java-client:3.3.3")
+    implementation("org.bstats:bstats-bukkit:3.0.2")
 }
 
 tasks {
@@ -44,6 +45,7 @@ tasks {
         relocate("okhttp3", "dev.loratech.guard.libs.okhttp3")
         relocate("okio", "dev.loratech.guard.libs.okio")
         relocate("com.zaxxer.hikari", "dev.loratech.guard.libs.hikari")
+        relocate("org.bstats", "dev.loratech.guard.libs.bstats")
         minimize {
             exclude(dependency("com.github.ben-manes.caffeine:caffeine:.*"))
         }

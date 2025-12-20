@@ -169,6 +169,15 @@ blacklist:
     - "shit"
 
 filters:
+  # IP address filter
+  # IP adresi filtresi
+  ip:
+    enabled: true
+    # Whitelisted IPs (e.g. server IPs)
+    # İzin verilen IP'ler (örn. sunucu IP'leri)
+    whitelist:
+      - "127.0.0.1"
+
   # Simple anti-spam filter
   # Basit anti-spam filtresi
   anti-spam:
@@ -278,6 +287,51 @@ bulk-operations:
   # Maximum players per bulk operation
   # Toplu işlem başına maksimum oyuncu
   max-players: 50
+
+# Moderation settings for signs, books, anvils, and commands
+# Tabela, kitap, örs ve komutlar için moderasyon ayarları
+moderation:
+  sign:
+    enabled: true
+  book:
+    enabled: true
+  anvil:
+    enabled: true
+  command-spy:
+    enabled: true
+
+# Slowmode settings
+# Yavaş mod ayarları
+slowmode:
+  enabled: false
+  # Delay between messages in seconds
+  # Mesajlar arası gecikme (saniye)
+  delay-seconds: 3
+
+# Staff chat settings
+# Yetkili sohbet ayarları
+staffchat:
+  permission: "loraguard.staffchat"
+
+# Warning decay settings
+# Uyarı azalma ayarları
+punishments:
+  warning-decay:
+    enabled: true
+    # Hours before warnings start decaying
+    # Uyarıların azalmaya başlaması için gereken saat
+    hours: 168
+    # Amount of points to decay
+    # Azaltılacak puan miktarı
+    amount: 1
+    # Check interval in minutes
+    # Kontrol aralığı (dakika)
+    check-minutes: 60
+
+# bStats metrics
+# bStats istatistikleri
+metrics:
+  enabled: true
 
 # Default language (en, tr, etc.)
 # Varsayılan dil (en, tr, vb.)

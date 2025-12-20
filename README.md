@@ -49,15 +49,38 @@ Advanced AI-powered chat moderation plugin for Minecraft servers.
 
 ## Features
 
-- **AI Moderation**: Uses Lora Technologies API with 19 moderation categories
-- **Local Filters**: Anti-spam, anti-flood, caps lock, link filter
-- **Punishment System**: Escalating punishments (warn → mute → kick → ban)
+### 🤖 AI Moderation
+- **AI-Powered Analysis**: Uses Lora Technologies API with 19 moderation categories
+- **Smart Caching**: Reduce API costs with intelligent message caching
+- **Anti-Bypass Protection**: Leet speak (4=a, 3=e, 0=o) and special character normalization
+
+### 🛡️ Content Filters
+- **Chat Filters**: Anti-spam, anti-flood, caps lock filter
+- **Link Filter**: Block URLs and domains with whitelist support
+- **IP Filter**: Prevent IP address sharing (server advertisements)
+- **Sign Moderation**: Monitor and filter sign text
+- **Book Moderation**: Filter book content and titles
+- **Anvil Moderation**: Block inappropriate item names
+- **Command Spy**: Monitor private messages (/msg, /tell, /w, /r)
+
+### ⚖️ Punishment System
+- **Escalating Punishments**: warn → mute → kick → ban
+- **Warning Decay**: Automatic warning point reduction over time
+- **Appeal System**: Players can appeal their punishments
+
+### 👮 Staff Tools
+- **Staff Chat**: Private communication channel for staff members
+- **Slowmode**: Control message frequency in chat
+- **Bulk Operations**: Mass mute/unmute players
+- **Export Data**: Export violations to JSON/CSV
+
+### 🎛️ Management
 - **GUI Admin Panel**: Easy-to-use graphical interface
-- **Multi-language**: Turkish and English support
+- **Multi-language**: Turkish and English support (commands too!)
 - **Discord Integration**: Webhook notifications for violations
 - **PlaceholderAPI**: Full placeholder support
-- **SQLite Database**: Violation history and player stats
-- **Caching**: Reduce API costs with smart caching
+- **MySQL/SQLite**: Flexible database options
+- **bStats Metrics**: Anonymous usage statistics
 
 ## Requirements
 
@@ -75,6 +98,7 @@ Advanced AI-powered chat moderation plugin for Minecraft servers.
 
 ## Commands
 
+### Admin Commands (`/loraguard`, `/lg`)
 | Command | Description | Permission |
 |---------|-------------|------------|
 | `/lg reload` | Reload configuration | `loraguard.admin` |
@@ -88,6 +112,23 @@ Advanced AI-powered chat moderation plugin for Minecraft servers.
 | `/lg test <message>` | Test message moderation | `loraguard.admin` |
 | `/lg setlang <tr/en>` | Change language | `loraguard.admin` |
 | `/lg gui` | Open admin panel | `loraguard.gui` |
+| `/lg slowmode <on/off/set> [seconds]` | Manage slowmode | `loraguard.admin` |
+| `/lg appeal <list/approve/deny>` | Manage appeals | `loraguard.admin` |
+| `/lg export <all/player/stats>` | Export data | `loraguard.admin` |
+| `/lg bulkmute [duration]` | Mass mute players | `loraguard.admin` |
+| `/lg bulkunmute` | Mass unmute players | `loraguard.admin` |
+
+### Player Commands
+| Command | Aliases | Description | Permission |
+|---------|---------|-------------|------------|
+| `/report <player> [reason]` | `/raporla`, `/sikayet` | Report a player | `loraguard.report` |
+| `/appeal <create/status/list>` | `/itiraz` | Appeal punishments | `loraguard.appeal` |
+| `/clearchat` | `/cc`, `/temizle` | Clear global chat | `loraguard.clearchat` |
+
+### Staff Commands
+| Command | Aliases | Description | Permission |
+|---------|---------|-------------|------------|
+| `/staffchat [message]` | `/sc`, `/yetkili` | Staff chat channel | `loraguard.staffchat` |
 
 ## Permissions
 
@@ -97,6 +138,11 @@ Advanced AI-powered chat moderation plugin for Minecraft servers.
 | `loraguard.bypass` | Bypass moderation | false |
 | `loraguard.notify` | Receive violation alerts | op |
 | `loraguard.gui` | Access GUI menu | op |
+| `loraguard.staffchat` | Access staff chat | op |
+| `loraguard.appeal` | Appeal punishments | true |
+| `loraguard.report` | Report players | true |
+| `loraguard.clearchat` | Clear chat | op |
+| `loraguard.commandspy` | See flagged private messages | op |
 
 ## PlaceholderAPI
 
@@ -123,15 +169,38 @@ Minecraft sunucuları için gelişmiş yapay zeka destekli sohbet moderasyon ekl
 
 ## Özellikler
 
-- **AI Moderasyon**: 19 moderasyon kategorisi ile Lora Technologies API
-- **Yerel Filtreler**: Anti-spam, anti-flood, büyük harf, link filtresi
-- **Ceza Sistemi**: Kademeli cezalar (uyarı → susturma → atma → yasaklama)
+### 🤖 AI Moderasyon
+- **AI Destekli Analiz**: 19 moderasyon kategorisi ile Lora Technologies API
+- **Akıllı Önbellekleme**: Zeki mesaj önbellekleme ile API maliyetlerini düşürün
+- **Anti-Bypass Koruması**: Leet speak (4=a, 3=e, 0=o) ve özel karakter normalizasyonu
+
+### 🛡️ İçerik Filtreleri
+- **Sohbet Filtreleri**: Anti-spam, anti-flood, büyük harf filtresi
+- **Link Filtresi**: URL ve domain engelleme (whitelist desteği)
+- **IP Filtresi**: IP adresi paylaşımını engelle (sunucu reklamları)
+- **Tabela Moderasyonu**: Tabela metinlerini izle ve filtrele
+- **Kitap Moderasyonu**: Kitap içeriği ve başlıklarını filtrele
+- **Örs Moderasyonu**: Uygunsuz eşya isimlerini engelle
+- **Komut İzleme**: Özel mesajları izle (/msg, /tell, /w, /r)
+
+### ⚖️ Ceza Sistemi
+- **Kademeli Cezalar**: uyarı → susturma → atma → yasaklama
+- **Uyarı Azalması**: Zamanla otomatik uyarı puanı azaltma
+- **İtiraz Sistemi**: Oyuncular cezalarına itiraz edebilir
+
+### 👮 Yetkili Araçları
+- **Yetkili Sohbeti**: Yetkili üyeler için özel iletişim kanalı
+- **Yavaş Mod**: Sohbetteki mesaj sıklığını kontrol et
+- **Toplu İşlemler**: Toplu susturma/susturmayı kaldırma
+- **Veri Dışa Aktarma**: İhlalleri JSON/CSV olarak dışa aktar
+
+### 🎛️ Yönetim
 - **GUI Yönetim Paneli**: Kullanımı kolay grafik arayüz
-- **Çoklu Dil**: Türkçe ve İngilizce desteği
+- **Çoklu Dil**: Türkçe ve İngilizce desteği (komutlar dahil!)
 - **Discord Entegrasyonu**: İhlaller için webhook bildirimleri
 - **PlaceholderAPI**: Tam placeholder desteği
-- **SQLite Veritabanı**: İhlal geçmişi ve oyuncu istatistikleri
-- **Önbellekleme**: Akıllı önbellekleme ile API maliyetlerini düşürün
+- **MySQL/SQLite**: Esnek veritabanı seçenekleri
+- **bStats Metrikleri**: Anonim kullanım istatistikleri
 
 ## Gereksinimler
 
@@ -149,6 +218,7 @@ Minecraft sunucuları için gelişmiş yapay zeka destekli sohbet moderasyon ekl
 
 ## Komutlar
 
+### Yönetici Komutları (`/loraguard`, `/lg`, `/moderasyon`)
 | Komut | Açıklama | İzin |
 |-------|----------|------|
 | `/lg reload` | Yapılandırmayı yenile | `loraguard.admin` |
@@ -162,6 +232,23 @@ Minecraft sunucuları için gelişmiş yapay zeka destekli sohbet moderasyon ekl
 | `/lg test <mesaj>` | Mesaj moderasyonunu test et | `loraguard.admin` |
 | `/lg setlang <tr/en>` | Dili değiştir | `loraguard.admin` |
 | `/lg gui` | Yönetim panelini aç | `loraguard.gui` |
+| `/lg slowmode <on/off/set> [saniye]` | Yavaş modu yönet | `loraguard.admin` |
+| `/lg appeal <list/approve/deny>` | İtirazları yönet | `loraguard.admin` |
+| `/lg export <all/player/stats>` | Verileri dışa aktar | `loraguard.admin` |
+| `/lg bulkmute [süre]` | Toplu susturma | `loraguard.admin` |
+| `/lg bulkunmute` | Toplu susturma kaldırma | `loraguard.admin` |
+
+### Oyuncu Komutları
+| Komut | Alternatifler | Açıklama | İzin |
+|-------|---------------|----------|------|
+| `/report <oyuncu> [sebep]` | `/raporla`, `/sikayet` | Oyuncu raporla | `loraguard.report` |
+| `/appeal <create/status/list>` | `/itiraz` | Cezaya itiraz et | `loraguard.appeal` |
+| `/clearchat` | `/cc`, `/temizle` | Sohbeti temizle | `loraguard.clearchat` |
+
+### Yetkili Komutları
+| Komut | Alternatifler | Açıklama | İzin |
+|-------|---------------|----------|------|
+| `/staffchat [mesaj]` | `/sc`, `/yetkili`, `/yetkilisohbet` | Yetkili sohbeti | `loraguard.staffchat` |
 
 ## İzinler
 
@@ -171,6 +258,11 @@ Minecraft sunucuları için gelişmiş yapay zeka destekli sohbet moderasyon ekl
 | `loraguard.bypass` | Moderasyonu atla | false |
 | `loraguard.notify` | İhlal uyarıları al | op |
 | `loraguard.gui` | GUI menüsüne eriş | op |
+| `loraguard.staffchat` | Yetkili sohbetine eriş | op |
+| `loraguard.appeal` | Cezalara itiraz et | true |
+| `loraguard.report` | Oyuncu raporla | true |
+| `loraguard.clearchat` | Sohbeti temizle | op |
+| `loraguard.commandspy` | Engellenen özel mesajları gör | op |
 
 ## Moderasyon Kategorileri
 

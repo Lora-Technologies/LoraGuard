@@ -4,6 +4,10 @@ moderation:
   blocked: "&cMesajın uygunsuz içerik tespit edildiği için engellendi!"
   warning: "&eDikkat! Mesajın uygunsuz içerik içeriyor olabilir."
   category-detected: "&7Tespit edilen kategori: &c{category}"
+  sign-blocked: "&cTabelanız uygunsuz içerik nedeniyle engellendi!"
+  book-blocked: "&cKitabınız uygunsuz içerik nedeniyle engellendi!"
+  anvil-blocked: "&cBu eşya ismi kullanılamaz!"
+  command-blocked: "&cMesajınız uygunsuz içerik nedeniyle engellendi!"
 
 punishments:
   warn:
@@ -13,6 +17,7 @@ punishments:
     message: "&cSusturuldun! &7Süre: &f{duration} &7Sebep: &f{reason}"
     broadcast: "&c{player} &7susturuldu. &8(Süre: {duration})"
     cannot-speak: "&cSusturulmuş durumdasın! &7Kalan süre: &f{remaining}"
+    expired: "&aSusturma süreniz doldu! Artık konuşabilirsiniz."
   kick:
     message: "&cSunucudan atıldın!\n\n&7Sebep: &f{reason}\n&7Lütfen kurallara uy."
     broadcast: "&c{player} &7sunucudan atıldı."
@@ -25,11 +30,25 @@ filters:
   flood: "&cÇok hızlı mesaj gönderiyorsun! Biraz yavaşla."
   caps: "&eLütfen CAPS LOCK kullanmayın."
   link: "&cLink paylaşımı yasaktır!"
+  ip: "&cIP adresi paylaşımı yasaktır!"
+  slowmode: "&cYavaş mod aktif! Lütfen {seconds} saniye bekleyin."
 
 commands:
   reload: "&aConfig dosyaları yeniden yüklendi!"
   toggle-on: "&aModerasyon sistemi aktif edildi!"
   toggle-off: "&cModerasyon sistemi devre dışı bırakıldı!"
+  staffchat:
+    format: "&8[&cYetkili&8] &7{player}: &f{message}"
+    toggled-on: "&aYetkili sohbet modu aktif! Tüm mesajlarınız yetkili sohbetine gidecek."
+    toggled-off: "&cYetkili sohbet modu kapatıldı!"
+    usage: "&cKullanım: /staffchat <mesaj> veya /staffchat ile aç/kapat"
+  slowmode:
+    enabled: "&aYavaş mod aktif edildi! Gecikme: {seconds} saniye."
+    disabled: "&cYavaş mod devre dışı bırakıldı!"
+    already-enabled: "&eYavaş mod zaten aktif!"
+    already-disabled: "&eYavaş mod zaten kapalı!"
+    invalid-range: "&cGecikme 1 ile 300 saniye arasında olmalıdır!"
+    invalid-number: "&cLütfen geçerli bir sayı girin!"
   stats:
     header: "&b&lLoraGuard İstatistikleri"
     total-violations: "&7Toplam ihlal: &f{count}"
@@ -61,6 +80,7 @@ commands:
   report:
     sent: "&aRapor başarıyla gönderildi! Yetkililer inceleyecektir."
     self: "&cKendini raporlayamazsın!"
+    cooldown: "&cTekrar raporlamak için {seconds} saniye bekleyin."
   clearchat:
     broadcast: "&aSohbet {player} tarafından temizlendi!"
   setlang:
@@ -82,10 +102,28 @@ commands:
     test: "&7/lg test <mesaj> &8- &fMesaj test et"
     setlang: "&7/lg setlang <tr|en> &8- &fDil değiştir"
     gui: "&7/lg gui &8- &fYönetim panelini aç"
+    slowmode: "&7/lg slowmode <on|off|set> [saniye] &8- &fYavaş modu yönet"
+  bulk:
+    mute-success: "&a{count} oyuncu susturuldu!"
+    unmute-success: "&a{count} oyuncunun susturması kaldırıldı!"
+    no-targets: "&cGeçerli hedef bulunamadı."
+    disabled: "&cToplu işlemler devre dışı."
+  export:
+    started: "&7Veriler dışa aktarılıyor..."
+    success: "&aDışa aktarma tamamlandı! Dosya: &f{file}"
+    failed: "&cDışa aktarma başarısız!"
+  appeal:
+    list: "&7/lg appeal list &8- &fBekleyen itirazları görüntüle"
+    approve: "&7/lg appeal approve <id> &8- &fİtirazı onayla"
+    deny: "&7/lg appeal deny <id> &8- &fİtirazı reddet"
+    list-header: "&b&lBekleyen İtirazlar ({count})"
+    list-entry: "&7#{id} &f{player} &8- &e{type}"
+    list-empty: "&7Bekleyen itiraz bulunamadı."
 
 notifications:
   staff-alert: "&c&lUygunsuz İçerik! &7{player}: &f{message}"
   category: "&8Kategori: &c{category} &8(&f{score}&8)"
+  command-spy-alert: "&c&l[KomutSpy] &7{player} /{command} kullandı: &f{message}"
 
 gui:
   main-menu:
@@ -124,6 +162,15 @@ gui:
     whitelisted: "&7Güvenilir: {status}"
     yes: "&cEvet"
     no: "&aHayır"
+    sort:
+      title: "&e&lOyuncuları Sırala"
+      current: "&7Mevcut: &f{mode}"
+      click-to-change: "&eSıralama modunu değiştirmek için tıkla"
+      name: "İsim"
+      violations: "İhlaller"
+      muted: "Önce Susturulanlar"
+    refresh: "&a&lYenile"
+    refresh-lore: "&7Oyuncu listesini yenilemek için tıkla"
   logs:
     title: "&8İhlal Logları"
     total:
@@ -176,40 +223,6 @@ gui:
       lore: "&7Tüm ihlal geçmişini temizle"
     back: "&c&lGeri"
     back-lore: "&7Oyuncu listesine dön"
-
-appeal:
-  approved: "&aİtirazın onaylandı! {note}"
-  denied: "&cİtirazın reddedildi. {note}"
-  approved-staff: "&a{player} oyuncusunun itirazı onaylandı!"
-  denied-staff: "&c{player} oyuncusunun itirazı reddedildi!"
-  staff-notify: "&e&lYeni İtiraz! &7{player} {type} cezasına itiraz etti. &8(ID: {id})"
-  cooldown: "&cLütfen başka bir itiraz göndermeden önce bekleyin."
-  already-pending: "&cZaten bekleyen bir itirazınız var."
-  submitted: "&aİtirazınız gönderildi!"
-  not-found: "&cİtiraz bulunamadı."
-
-commands:
-  report:
-    cooldown: "&cTekrar raporlamak için {seconds} saniye bekleyin."
-  bulk:
-    mute-success: "&a{count} oyuncu susturuldu!"
-    unmute-success: "&a{count} oyuncunun susturması kaldırıldı!"
-    no-targets: "&cGeçerli hedef bulunamadı."
-    disabled: "&cToplu işlemler devre dışı."
-  export:
-    started: "&7Veriler dışa aktarılıyor..."
-    success: "&aDışa aktarma tamamlandı! Dosya: &f{file}"
-    failed: "&cDışa aktarma başarısız!"
-  appeal:
-    list: "&7/lg appeal list &8- &fBekleyen itirazları görüntüle"
-    approve: "&7/lg appeal approve <id> &8- &fİtirazı onayla"
-    deny: "&7/lg appeal deny <id> &8- &fİtirazı reddet"
-
-punishments:
-  mute:
-    expired: "&aSusturma süreniz doldu! Artık konuşabilirsiniz."
-
-gui:
   pagination:
     previous: "&e« Önceki Sayfa"
     next: "&eSonraki Sayfa »"
@@ -218,31 +231,15 @@ gui:
     total-items: "&7Toplam: {count} öğe"
     back: "&c&lGeri"
     back-lore: "&7Önceki menüye dön"
-  player-list:
-    title: "&8Oyuncu Yönetimi"
-    yes: "&aEvet"
-    no: "&cHayır"
-    click-to-manage: "&eBu oyuncuyu yönetmek için tıkla"
-    violation-points: "&7İhlaller: &f{count}"
-    muted: "&7Susturulmuş: {status}"
-    whitelisted: "&7Beyaz Listede: {status}"
-    sort:
-      title: "&e&lOyuncuları Sırala"
-      current: "&7Mevcut: &f{mode}"
-      click-to-change: "&eSıralama modunu değiştirmek için tıkla"
-      name: "İsim"
-      violations: "İhlaller"
-      muted: "Önce Susturulanlar"
-    refresh: "&a&lYenile"
-    refresh-lore: "&7Oyuncu listesini yenilemek için tıkla"
   appeals:
     title: "&8İtiraz Yönetimi"
     pending-count: "&e&l{count} Bekleyen İtiraz"
     pending-lore: "&7Bekleyen itirazları görüntülemek için tıkla"
+    pending-notice: "&e&l{count} bekliyor!"
     type: "&7Tür: &f{type}"
     date: "&7Tarih: &f{date}"
     reason-title: "&7Sebep:"
-    click-to-review: "&7İncelemek için tıkla"
+    click-to-review: "&eİncelemek için tıkla"
     appeal-title: "&e{player} &8(#{id})"
   appeal-detail:
     title: "&8İtiraz #{id}"
@@ -264,6 +261,40 @@ gui:
     back: "&c&lGeri"
     back-lore: "&7İtiraz listesine dön"
 
+appeal:
+  approved: "&aİtirazın onaylandı! {note}"
+  denied: "&cİtirazın reddedildi. {note}"
+  approved-staff: "&a{player} oyuncusunun itirazı onaylandı!"
+  denied-staff: "&c{player} oyuncusunun itirazı reddedildi!"
+  staff-notify: "&e&lYeni İtiraz! &7{player} {type} cezasına itiraz etti. &8(ID: {id})"
+  cooldown: "&cLütfen {seconds} saniye bekleyiniz."
+  already-pending: "&cZaten bekleyen bir itirazınız var."
+  submitted: "&aİtirazınız gönderildi!"
+  not-found: "&cİtiraz bulunamadı."
+  disabled: "&cİtiraz sistemi devre dışı."
+  invalid-type: "&cGeçersiz ceza türü! Kullanılabilir: mute veya ban"
+  no-punishment: "&cİtiraz edebileceğiniz aktif bir {type} cezanız yok."
+  failed: "&cİtiraz oluşturulamadı. Lütfen tekrar deneyin."
+  no-pending: "&cBekleyen itirazınız bulunmuyor."
+  no-appeals: "&cHiç itirazınız bulunmuyor."
+  usage:
+    header: "&b&lİtiraz Komutları"
+    create: "&7/appeal create <mute|ban> <sebep> &8- &fİtiraz oluştur"
+    status: "&7/appeal status &8- &fBekleyen itirazını kontrol et"
+    list: "&7/appeal list &8- &fTüm itirazlarını görüntüle"
+  status:
+    header: "&b&lBekleyen İtirazınız"
+    id: "&7İtiraz ID: &f{id}"
+    type: "&7Ceza Türü: &f{type}"
+    status: "&7Durum: {status}"
+    reason: "&7Sebebiniz: &f{reason}"
+    pending-text: "&eBeklemede"
+    approved-text: "&aOnaylandı"
+    denied-text: "&cReddedildi"
+  list:
+    header: "&b&lİtirazlarınız ({count})"
+    entry: "&7#{id} &8- &f{type} &8- {status}"
+
 misc:
   permanent: "Kalıcı"
   seconds: "saniye"
@@ -273,4 +304,5 @@ misc:
   online: "&aÇevrimiçi"
   offline: "&cÇevrimdışı"
   loading: "&7Yükleniyor..."
+  please-wait: "&7Lütfen bekleyin..."
   players-only: "&cBu komut sadece oyuncular tarafından kullanılabilir!"

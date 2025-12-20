@@ -26,7 +26,7 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
     private static final List<String> SUBCOMMANDS = Arrays.asList(
         "reload", "toggle", "stats", "history", "clear", "whitelist", 
         "mute", "unmute", "test", "setlang", "gui", "help",
-        "bulkmute", "bulkunmute", "export", "appeal"
+        "bulkmute", "bulkunmute", "export", "appeal", "slowmode"
     );
 
     public LoraCommand(LoraGuard plugin) {
@@ -63,7 +63,8 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             case "bulkunmute" -> handleBulkUnmute(sender);
             case "export" -> handleExport(sender, args);
             case "appeal" -> handleAppeal(sender, args);
-            case "help" -> sendHelp(sender);
+            case "slowmode", "yavasMod", "yavasmod" -> handleSlowmode(sender, args);
+            case "help", "yardim", "yardım" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
 
@@ -443,13 +444,16 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             case "list" -> {
                 List<Appeal> appeals = plugin.getAppealManager().getPendingAppeals();
                 if (appeals.isEmpty()) {
-                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.no-targets"));
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.appeal.list-empty"));
                     return;
                 }
-                sender.sendMessage("§b§lPending Appeals (" + appeals.size() + "):");
+                sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.list-header",
+                    "count", String.valueOf(appeals.size())));
                 for (Appeal appeal : appeals) {
-                    sender.sendMessage("§7#" + appeal.getId() + " §f" + appeal.getPlayerName() + 
-                        " §8- §e" + appeal.getPunishmentType());
+                    sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.list-entry",
+                        "id", String.valueOf(appeal.getId()),
+                        "player", appeal.getPlayerName(),
+                        "type", appeal.getPunishmentType()));
                 }
             }
             case "approve" -> {
@@ -491,6 +495,58 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handleSlowmode(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                "usage", "/lg slowmode <on|off|set> [seconds]"));
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+
+        switch (action) {
+            case "on", "ac", "aç" -> {
+                if (plugin.getSlowmodeManager().isEnabled()) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.slowmode.already-enabled"));
+                    return;
+                }
+                plugin.getSlowmodeManager().setEnabled(true);
+                sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.slowmode.enabled",
+                    "seconds", String.valueOf(plugin.getSlowmodeManager().getDelay())));
+            }
+            case "off", "kapat" -> {
+                if (!plugin.getSlowmodeManager().isEnabled()) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.slowmode.already-disabled"));
+                    return;
+                }
+                plugin.getSlowmodeManager().setEnabled(false);
+                sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.slowmode.disabled"));
+            }
+            case "set", "ayarla" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                        "usage", "/lg slowmode set <seconds>"));
+                    return;
+                }
+                try {
+                    int seconds = Integer.parseInt(args[2]);
+                    if (seconds < 1 || seconds > 300) {
+                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.slowmode.invalid-range"));
+                        return;
+                    }
+                    plugin.getSlowmodeManager().setDelay(seconds);
+                    plugin.getSlowmodeManager().setEnabled(true);
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.slowmode.enabled",
+                        "seconds", String.valueOf(seconds)));
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.slowmode.invalid-number"));
+                }
+            }
+            default -> sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                "usage", "/lg slowmode <on|off|set> [seconds]"));
+        }
+    }
+
     private void sendHelp(CommandSender sender) {
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.header"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.reload"));
@@ -504,6 +560,7 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.test"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.setlang"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.gui"));
+        sender.sendMessage(plugin.getLanguageManager().get("commands.help.slowmode"));
     }
 
     private OfflinePlayer resolvePlayer(String name) {
@@ -561,6 +618,9 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             }
             if (sub.equals("appeal")) {
                 return Arrays.asList("list", "approve", "deny");
+            }
+            if (sub.equals("slowmode") || sub.equals("yavasmod")) {
+                return Arrays.asList("on", "off", "set", "ac", "kapat", "ayarla");
             }
             if (sub.equals("bulkmute")) {
                 return Arrays.asList("5m", "10m", "30m", "1h", "1d");

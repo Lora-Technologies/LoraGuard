@@ -104,7 +104,7 @@ public class MainMenuGUI extends AbstractGUI {
         lore.add(plugin.getLanguageManager().get("gui.appeals.pending-lore"));
         if (count > 0) {
             lore.add("");
-            lore.add("§e§l" + count + " pending!");
+            lore.add(plugin.getLanguageManager().get("gui.appeals.pending-notice", "count", String.valueOf(count)));
         }
         
         ItemStack item = new ItemStack(count > 0 ? Material.BELL : Material.IRON_NUGGET);

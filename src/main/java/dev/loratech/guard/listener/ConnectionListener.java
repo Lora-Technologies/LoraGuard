@@ -17,5 +17,7 @@ public class ConnectionListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         plugin.getFilterManager().clearHistory(event.getPlayer().getUniqueId());
         plugin.getGUIManager().unregisterGUI(event.getPlayer());
+        plugin.getSlowmodeManager().clearPlayer(event.getPlayer().getUniqueId());
+        plugin.getCooldownManager().clearCooldowns(event.getPlayer().getUniqueId());
     }
 }

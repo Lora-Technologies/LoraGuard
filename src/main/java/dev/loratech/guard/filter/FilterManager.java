@@ -18,6 +18,13 @@ public class FilterManager {
         "(https?://)?([\\w-]+\\.)+[\\w-]+(/[\\w-./?%&=]*)?",
         Pattern.CASE_INSENSITIVE
     );
+    private static final Pattern IP_PATTERN = Pattern.compile(
+        "\\b(?:\\d{1,3}[.,]){3}\\d{1,3}(?::\\d{1,5})?\\b"
+    );
+    private static final Pattern DISCORD_INVITE_PATTERN = Pattern.compile(
+        "(discord\\.gg|discordapp\\.com/invite)/[a-zA-Z0-9]+",
+        Pattern.CASE_INSENSITIVE
+    );
 
     public FilterManager(LoraGuard plugin) {
         this.plugin = plugin;
@@ -43,6 +50,13 @@ public class FilterManager {
             FilterResult linkResult = checkLinks(message);
             if (!linkResult.isAllowed()) {
                 return linkResult;
+            }
+        }
+
+        if (plugin.getConfigManager().isIpFilterEnabled()) {
+            FilterResult ipResult = checkIpAddress(message);
+            if (!ipResult.isAllowed()) {
+                return ipResult;
             }
         }
 
@@ -104,6 +118,19 @@ public class FilterManager {
         return FilterResult.allow();
     }
 
+    private FilterResult checkIpAddress(String message) {
+        if (IP_PATTERN.matcher(message).find()) {
+            List<String> whitelist = plugin.getConfigManager().getIpWhitelist();
+            for (String allowed : whitelist) {
+                if (message.contains(allowed)) {
+                    return FilterResult.allow();
+                }
+            }
+            return FilterResult.deny(FilterType.IP, plugin.getLanguageManager().getPrefixed("filters.ip"));
+        }
+        return FilterResult.allow();
+    }
+
     private FilterResult checkCapsLock(String message) {
         if (message.length() < plugin.getConfigManager().getCapsLockMinLength()) {
             return FilterResult.allow();
@@ -162,7 +189,7 @@ public class FilterManager {
     private record MessageRecord(String message, long timestamp) {}
 
     public enum FilterType {
-        SPAM, FLOOD, LINK, CAPS, BLACKLIST
+        SPAM, FLOOD, LINK, CAPS, BLACKLIST, IP, DISCORD
     }
 
     public record FilterResult(boolean isAllowed, FilterType type, String message, String modifiedMessage) {

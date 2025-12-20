@@ -46,7 +46,7 @@ public class PlayerDetailGUI extends AbstractGUI {
         }
         inventory.setItem(4, head);
 
-        inventory.setItem(11, createItem(Material.BOOK, plugin.getLanguageManager().get("gui.player-detail.history.title"), "§7Loading..."));
+        inventory.setItem(11, createItem(Material.BOOK, plugin.getLanguageManager().get("gui.player-detail.history.title"), plugin.getLanguageManager().get("misc.loading")));
 
         org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             int points = plugin.getDatabaseManager().getPlayerViolationPoints(target.getUniqueId());

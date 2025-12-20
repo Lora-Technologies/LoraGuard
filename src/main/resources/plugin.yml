@@ -12,18 +12,32 @@ softdepend:
 commands:
   loraguard:
     description: Main command for LoraGuard
-    aliases: [lg, guard, chatmod]
+    aliases: [lg, guard, chatmod, lora, moderasyon]
     permission: loraguard.admin
 
   report:
     description: Report a player
+    aliases: [raporla, sikayet, şikayet]
     usage: /report <player> <reason>
     permission: loraguard.report
 
   clearchat:
     description: Clears the global chat
+    aliases: [cc, sohbettemizle, temizle]
     usage: /clearchat
     permission: loraguard.clearchat
+
+  staffchat:
+    description: Staff chat channel
+    aliases: [sc, yetkili, yetkilisohbet, adminchat, ac]
+    usage: /staffchat [message]
+    permission: loraguard.staffchat
+
+  appeal:
+    description: Appeal a punishment
+    aliases: [itiraz, itirazet]
+    usage: /appeal <create|status|list>
+    permission: loraguard.appeal
 
 permissions:
   loraguard.admin:
@@ -43,4 +57,13 @@ permissions:
     default: op
   loraguard.clearchat:
     description: Clear the global chat
+    default: op
+  loraguard.staffchat:
+    description: Access to staff chat
+    default: op
+  loraguard.appeal:
+    description: Appeal punishments
+    default: true
+  loraguard.commandspy:
+    description: See flagged private messages
     default: op

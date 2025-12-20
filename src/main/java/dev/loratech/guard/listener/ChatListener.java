@@ -4,6 +4,7 @@ import dev.loratech.guard.LoraGuard;
 import dev.loratech.guard.api.ModerationResponse;
 import dev.loratech.guard.cache.MessageCache;
 import dev.loratech.guard.filter.FilterManager;
+import dev.loratech.guard.util.TextUtil;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.entity.Player;
@@ -52,6 +53,17 @@ public class ChatListener implements Listener {
             }
         }
 
+        if (plugin.getSlowmodeManager().isEnabled()) {
+            if (!plugin.getSlowmodeManager().canSendMessage(player.getUniqueId())) {
+                event.setCancelled(true);
+                int remaining = plugin.getSlowmodeManager().getRemainingCooldown(player.getUniqueId());
+                player.sendMessage(plugin.getLanguageManager().getPrefixed("filters.slowmode",
+                    "seconds", String.valueOf(remaining)));
+                return;
+            }
+            plugin.getSlowmodeManager().recordMessage(player.getUniqueId());
+        }
+
         FilterManager.FilterResult filterResult = plugin.getFilterManager().check(player, message);
         if (!filterResult.isAllowed()) {
             event.setCancelled(true);
@@ -65,8 +77,10 @@ public class ChatListener implements Listener {
         }
 
         if (plugin.getConfigManager().isBlacklistEnabled()) {
+            String normalizedMessage = TextUtil.normalizeText(message);
             for (String word : plugin.getConfigManager().getBlacklistedWords()) {
-                if (message.toLowerCase().contains(word.toLowerCase())) {
+                String normalizedWord = TextUtil.normalizeText(word);
+                if (normalizedMessage.contains(normalizedWord)) {
                     event.setCancelled(true);
                     player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.blocked"));
                     plugin.getPunishmentManager().handleViolation(player, "blacklist", 1.0, message);
