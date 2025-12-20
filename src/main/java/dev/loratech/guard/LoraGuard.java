@@ -1,17 +1,26 @@
 package dev.loratech.guard;
 
 import dev.loratech.guard.api.LoraApiClient;
+import dev.loratech.guard.appeal.AppealManager;
 import dev.loratech.guard.cache.MessageCache;
+import dev.loratech.guard.cache.PunishmentCache;
+import dev.loratech.guard.command.ClearChatCommand;
 import dev.loratech.guard.command.LoraCommand;
+import dev.loratech.guard.command.ReportCommand;
 import dev.loratech.guard.config.ConfigManager;
 import dev.loratech.guard.database.DatabaseManager;
+import dev.loratech.guard.export.ExportManager;
 import dev.loratech.guard.filter.FilterManager;
 import dev.loratech.guard.gui.GUIManager;
 import dev.loratech.guard.hook.DiscordHook;
 import dev.loratech.guard.hook.PlaceholderHook;
 import dev.loratech.guard.language.LanguageManager;
 import dev.loratech.guard.listener.ChatListener;
+import dev.loratech.guard.listener.ConnectionListener;
+import dev.loratech.guard.manager.CooldownManager;
 import dev.loratech.guard.punishment.PunishmentManager;
+import dev.loratech.guard.task.MuteExpiryTask;
+import dev.loratech.guard.task.ViolationDecayTask;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class LoraGuard extends JavaPlugin {
@@ -23,11 +32,14 @@ public class LoraGuard extends JavaPlugin {
     private DatabaseManager databaseManager;
     private LoraApiClient apiClient;
     private MessageCache messageCache;
-    private dev.loratech.guard.cache.PunishmentCache punishmentCache;
+    private PunishmentCache punishmentCache;
     private PunishmentManager punishmentManager;
     private FilterManager filterManager;
     private DiscordHook discordHook;
     private GUIManager guiManager;
+    private CooldownManager cooldownManager;
+    private AppealManager appealManager;
+    private ExportManager exportManager;
     
     private boolean enabled = true;
 
@@ -40,29 +52,41 @@ public class LoraGuard extends JavaPlugin {
         databaseManager = new DatabaseManager(this);
         apiClient = new LoraApiClient(this);
         messageCache = new MessageCache(this);
-        punishmentCache = new dev.loratech.guard.cache.PunishmentCache(this);
+        punishmentCache = new PunishmentCache(this);
         punishmentManager = new PunishmentManager(this);
         filterManager = new FilterManager(this);
         discordHook = new DiscordHook(this);
         guiManager = new GUIManager(this);
+        cooldownManager = new CooldownManager(this);
+        appealManager = new AppealManager(this);
+        exportManager = new ExportManager(this);
         
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new PlaceholderHook(this).register();
             getLogger().info("PlaceholderAPI hook registered!");
         }
         
-        // Load active mutes into cache
         getLogger().info("Loading active mutes...");
         databaseManager.getActiveMutes().forEach(punishmentCache::addMute);
         
         getServer().getPluginManager().registerEvents(new ChatListener(this), this);
+        getServer().getPluginManager().registerEvents(new ConnectionListener(this), this);
         
         LoraCommand loraCommand = new LoraCommand(this);
         getCommand("loraguard").setExecutor(loraCommand);
         getCommand("loraguard").setTabCompleter(loraCommand);
         
-        getCommand("report").setExecutor(new dev.loratech.guard.command.ReportCommand(this));
-        getCommand("clearchat").setExecutor(new dev.loratech.guard.command.ClearChatCommand(this));
+        ReportCommand reportCommand = new ReportCommand(this);
+        getCommand("report").setExecutor(reportCommand);
+        getCommand("report").setTabCompleter(reportCommand);
+        
+        ClearChatCommand clearChatCommand = new ClearChatCommand(this);
+        getCommand("clearchat").setExecutor(clearChatCommand);
+        getCommand("clearchat").setTabCompleter(clearChatCommand);
+
+        new ViolationDecayTask(this).start();
+        new MuteExpiryTask(this).start();
+        getLogger().info("Background tasks started!");
 
         getLogger().info("LoraGuard v" + getDescription().getVersion() + " enabled!");
         getLogger().info("Powered by Lora Technologies - https://loratech.dev");
@@ -103,7 +127,7 @@ public class LoraGuard extends JavaPlugin {
         return messageCache;
     }
 
-    public dev.loratech.guard.cache.PunishmentCache getPunishmentCache() {
+    public PunishmentCache getPunishmentCache() {
         return punishmentCache;
     }
 
@@ -121,6 +145,18 @@ public class LoraGuard extends JavaPlugin {
 
     public GUIManager getGUIManager() {
         return guiManager;
+    }
+
+    public CooldownManager getCooldownManager() {
+        return cooldownManager;
+    }
+
+    public AppealManager getAppealManager() {
+        return appealManager;
+    }
+
+    public ExportManager getExportManager() {
+        return exportManager;
     }
 
     public boolean isModEnabled() {

@@ -259,4 +259,40 @@ public class ConfigManager {
     public boolean isDebug() {
         return config.getBoolean("debug", false);
     }
+
+    public int getViolationDecayAmount() {
+        return config.getInt("punishments.violation-decay-amount", 1);
+    }
+
+    public int getViolationDecayCheckMinutes() {
+        return config.getInt("punishments.violation-decay-check-minutes", 60);
+    }
+
+    public int getReportCooldownSeconds() {
+        return config.getInt("report.cooldown-seconds", 60);
+    }
+
+    public boolean isAppealSystemEnabled() {
+        return config.getBoolean("appeal.enabled", true);
+    }
+
+    public int getAppealCooldownSeconds() {
+        return config.getInt("appeal.cooldown-seconds", 3600);
+    }
+
+    public boolean isUnmuteNotificationSoundEnabled() {
+        return config.getBoolean("notifications.unmute-sound-enabled", true);
+    }
+
+    public String getUnmuteNotificationSound() {
+        return config.getString("notifications.unmute-sound", "ENTITY_PLAYER_LEVELUP");
+    }
+
+    public boolean isBulkOperationsEnabled() {
+        return config.getBoolean("bulk-operations.enabled", true);
+    }
+
+    public int getBulkOperationsLimit() {
+        return config.getInt("bulk-operations.max-players", 50);
+    }
 }

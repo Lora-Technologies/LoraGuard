@@ -5,10 +5,12 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class MainMenuGUI extends AbstractGUI {
-
-    private static final String TITLE = "§8LoraGuard Control Panel";
 
     public MainMenuGUI(GUIManager guiManager, Player viewer) {
         super(guiManager, viewer);
@@ -16,57 +18,103 @@ public class MainMenuGUI extends AbstractGUI {
 
     @Override
     public String getTitle() {
-        return TITLE;
+        return plugin.getLanguageManager().get("gui.main-menu.title");
     }
 
     @Override
     public void setup() {
-        createInventory(27);
-        fillBorder(27);
+        createInventory(45);
+        fillBorder(45);
         
-        inventory.setItem(10, createItem(
+        inventory.setItem(11, createItem(
             Material.BOOK,
-            "§b§lStatistics",
-            "§7Click to view statistics",
+            plugin.getLanguageManager().get("gui.main-menu.stats.title"),
+            plugin.getLanguageManager().get("gui.main-menu.stats.lore"),
             "",
-            "§7Total Violations: §f" + plugin.getDatabaseManager().getTotalViolations(),
-            "§7Today: §f" + plugin.getDatabaseManager().getTodayViolations(),
-            "§7Cache Size: §f" + plugin.getMessageCache().size()
+            "§7" + plugin.getLanguageManager().get("misc.loading")
         ));
 
-        inventory.setItem(12, createItem(
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            int total = plugin.getDatabaseManager().getTotalViolations();
+            int today = plugin.getDatabaseManager().getTodayViolations();
+            long cacheSize = plugin.getMessageCache().size();
+            int pendingAppeals = plugin.getAppealManager().getPendingAppealCount();
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                inventory.setItem(11, createItem(
+                    Material.BOOK,
+                    plugin.getLanguageManager().get("gui.main-menu.stats.title"),
+                    plugin.getLanguageManager().get("gui.main-menu.stats.lore"),
+                    "",
+                    plugin.getLanguageManager().get("gui.main-menu.stats.total", "count", String.valueOf(total)),
+                    plugin.getLanguageManager().get("gui.main-menu.stats.today", "count", String.valueOf(today)),
+                    plugin.getLanguageManager().get("gui.main-menu.stats.cache", "count", String.valueOf(cacheSize))
+                ));
+
+                updateAppealItem(pendingAppeals);
+            });
+        });
+
+        inventory.setItem(13, createItem(
             Material.PLAYER_HEAD,
-            "§e§lPlayer Management",
-            "§7Click to manage players",
+            plugin.getLanguageManager().get("gui.main-menu.players.title"),
+            plugin.getLanguageManager().get("gui.main-menu.players.lore"),
             "",
-            "§7Online Players: §f" + Bukkit.getOnlinePlayers().size()
+            plugin.getLanguageManager().get("gui.main-menu.players.online", "count", String.valueOf(Bukkit.getOnlinePlayers().size()))
         ));
 
-        String statusColor = plugin.isModEnabled() ? "§a" : "§c";
-        String statusText = plugin.isModEnabled() ? "ENABLED" : "DISABLED";
-        inventory.setItem(14, createItem(
+        String statusText = plugin.isModEnabled() 
+            ? plugin.getLanguageManager().get("gui.main-menu.toggle.enabled") 
+            : plugin.getLanguageManager().get("gui.main-menu.toggle.disabled");
+        inventory.setItem(15, createItem(
             plugin.isModEnabled() ? Material.LIME_DYE : Material.GRAY_DYE,
-            "§a§lToggle Moderation",
-            "§7Click to toggle moderation",
+            plugin.getLanguageManager().get("gui.main-menu.toggle.title"),
+            plugin.getLanguageManager().get("gui.main-menu.toggle.lore"),
             "",
-            "§7Status: " + statusColor + statusText
+            plugin.getLanguageManager().get("gui.main-menu.toggle.status", "status", statusText)
         ));
 
-        inventory.setItem(16, createItem(
+        inventory.setItem(29, createItem(
             Material.PAPER,
-            "§7§lViolation Logs",
-            "§7Click to view recent logs"
+            plugin.getLanguageManager().get("gui.main-menu.logs.title"),
+            plugin.getLanguageManager().get("gui.main-menu.logs.lore")
         ));
 
-        String apiStatus = plugin.getApiClient().isApiAvailable() ? "§aOnline" : "§cOffline";
-        inventory.setItem(22, createItem(
-            Material.ENDER_EYE,
-            "§d§lAPI Status",
-            "§7Lora API Status: " + apiStatus,
-            "",
-            "§7Model: §f" + plugin.getConfigManager().getApiModel(),
-            "§7Threshold: §f" + plugin.getConfigManager().getApiThreshold()
+        inventory.setItem(31, createItem(
+            Material.BELL,
+            plugin.getLanguageManager().get("gui.appeals.pending-count", "count", "..."),
+            plugin.getLanguageManager().get("gui.appeals.pending-lore")
         ));
+
+        String apiStatus = plugin.getApiClient().isApiAvailable() 
+            ? plugin.getLanguageManager().get("misc.online") 
+            : plugin.getLanguageManager().get("misc.offline");
+        inventory.setItem(33, createItem(
+            Material.ENDER_EYE,
+            plugin.getLanguageManager().get("gui.main-menu.api.title"),
+            plugin.getLanguageManager().get("gui.main-menu.api.status", "status", apiStatus),
+            "",
+            plugin.getLanguageManager().get("gui.main-menu.api.model", "model", plugin.getConfigManager().getApiModel()),
+            plugin.getLanguageManager().get("gui.main-menu.api.threshold", "threshold", String.valueOf(plugin.getConfigManager().getApiThreshold()))
+        ));
+    }
+
+    private void updateAppealItem(int count) {
+        List<String> lore = new ArrayList<>();
+        lore.add(plugin.getLanguageManager().get("gui.appeals.pending-lore"));
+        if (count > 0) {
+            lore.add("");
+            lore.add("§e§l" + count + " pending!");
+        }
+        
+        ItemStack item = new ItemStack(count > 0 ? Material.BELL : Material.IRON_NUGGET);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(plugin.getLanguageManager().get("gui.appeals.pending-count", "count", String.valueOf(count)));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        inventory.setItem(31, item);
     }
 
     @Override
@@ -80,16 +128,18 @@ public class MainMenuGUI extends AbstractGUI {
         int slot = event.getSlot();
 
         switch (slot) {
-            case 10 -> {
+            case 11 -> {
                 viewer.closeInventory();
                 viewer.performCommand("loraguard stats");
             }
-            case 12 -> navigateTo(new PlayerListGUI(guiManager, viewer));
-            case 14 -> {
+            case 13 -> navigateTo(new ModernPlayerListGUI(guiManager, viewer));
+            case 15 -> {
                 plugin.setModEnabled(!plugin.isModEnabled());
                 setup();
+                viewer.updateInventory();
             }
-            case 16 -> navigateTo(new LogsGUI(guiManager, viewer));
+            case 29 -> navigateTo(new LogsGUI(guiManager, viewer));
+            case 31 -> navigateTo(new AppealListGUI(guiManager, viewer));
         }
     }
 }

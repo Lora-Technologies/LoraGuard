@@ -40,8 +40,10 @@ public abstract class AbstractGUI {
     public void navigateTo(AbstractGUI nextGUI) {
         navigating = true;
         viewer.closeInventory();
-        navigating = false;
-        nextGUI.open();
+        org.bukkit.Bukkit.getScheduler().runTask(guiManager.getPlugin(), () -> {
+            navigating = false;
+            nextGUI.open();
+        });
     }
 
     public boolean isNavigating() {

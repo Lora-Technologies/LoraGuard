@@ -45,11 +45,15 @@ public class PlaceholderHook extends PlaceholderExpansion {
         }
 
         if (params.equalsIgnoreCase("status")) {
-            return plugin.isModEnabled() ? "Enabled" : "Disabled";
+            return plugin.isModEnabled() 
+                ? plugin.getLanguageManager().get("gui.main-menu.toggle.enabled") 
+                : plugin.getLanguageManager().get("gui.main-menu.toggle.disabled");
         }
 
         if (params.equalsIgnoreCase("api_status")) {
-            return plugin.getApiClient().isApiAvailable() ? "Online" : "Offline";
+            return plugin.getApiClient().isApiAvailable() 
+                ? plugin.getLanguageManager().get("misc.online") 
+                : plugin.getLanguageManager().get("misc.offline");
         }
 
         if (params.equalsIgnoreCase("cache_size")) {
@@ -65,7 +69,9 @@ public class PlaceholderHook extends PlaceholderExpansion {
         }
 
         if (params.equalsIgnoreCase("player_muted")) {
-            return plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId()) ? "Yes" : "No";
+            return plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId()) 
+                ? plugin.getLanguageManager().get("gui.player-list.yes") 
+                : plugin.getLanguageManager().get("gui.player-list.no");
         }
 
         if (params.equalsIgnoreCase("player_mute_remaining")) {

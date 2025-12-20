@@ -28,9 +28,8 @@ public class DiscordHook {
             return;
         }
 
-        // Already async context usually, but ensuring it
         try {
-            String color = punished ? "#00FF00" : "#FFA500"; // Green if auto-punished, Orange if needs review
+            String color = punished ? "#00FF00" : "#FFA500";
             int colorInt = Integer.parseInt(color.replace("#", ""), 16);
 
             JsonObject embed = new JsonObject();
@@ -154,5 +153,54 @@ public class DiscordHook {
             return text;
         }
         return text.substring(0, maxLength) + "...";
+    }
+
+    public void sendAppealUpdate(dev.loratech.guard.appeal.Appeal appeal, 
+                                  dev.loratech.guard.appeal.Appeal.AppealStatus status, 
+                                  String reviewerName, String note) {
+        if (!plugin.getConfigManager().isDiscordEnabled()) {
+            return;
+        }
+
+        String webhookUrl = plugin.getConfigManager().getDiscordWebhookUrl();
+        if (webhookUrl == null || webhookUrl.isEmpty()) {
+            return;
+        }
+
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                String color = status == dev.loratech.guard.appeal.Appeal.AppealStatus.APPROVED 
+                    ? "#00FF00" : "#FF0000";
+                int colorInt = Integer.parseInt(color.replace("#", ""), 16);
+
+                JsonObject embed = new JsonObject();
+                embed.addProperty("title", status == dev.loratech.guard.appeal.Appeal.AppealStatus.APPROVED 
+                    ? "✅ Appeal Approved" : "❌ Appeal Denied");
+                embed.addProperty("color", colorInt);
+                embed.addProperty("timestamp", Instant.now().toString());
+
+                com.google.gson.JsonArray fields = new com.google.gson.JsonArray();
+                addField(fields, "Player", appeal.getPlayerName(), true);
+                addField(fields, "Appeal ID", String.valueOf(appeal.getId()), true);
+                addField(fields, "Punishment Type", appeal.getPunishmentType(), true);
+                addField(fields, "Reviewer", reviewerName, true);
+                if (note != null && !note.isEmpty()) {
+                    addField(fields, "Note", note, false);
+                }
+                addField(fields, "Original Reason", appeal.getReason(), false);
+
+                embed.add("fields", fields);
+
+                JsonObject footer = new JsonObject();
+                footer.addProperty("text", "LoraGuard Appeal System");
+                embed.add("footer", footer);
+
+                sendPayload(webhookUrl, embed);
+            } catch (Exception e) {
+                if (plugin.getConfigManager().isDebug()) {
+                    plugin.getLogger().warning("Discord webhook appeal error: " + e.getMessage());
+                }
+            }
+        });
     }
 }

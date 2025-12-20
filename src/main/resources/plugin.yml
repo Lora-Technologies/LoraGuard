@@ -41,3 +41,6 @@ permissions:
   loraguard.gui:
     description: Access to GUI menu
     default: op
+  loraguard.clearchat:
+    description: Clear the global chat
+    default: op

@@ -13,7 +13,6 @@ import java.util.List;
 
 public class PlayerListGUI extends AbstractGUI {
 
-    private static final String TITLE = "§8Player Management";
     private int inventorySize;
 
     public PlayerListGUI(GUIManager guiManager, Player viewer) {
@@ -22,48 +21,71 @@ public class PlayerListGUI extends AbstractGUI {
 
     @Override
     public String getTitle() {
-        return TITLE;
+        return plugin.getLanguageManager().get("gui.player-list.title");
     }
 
     @Override
     public void setup() {
-        inventorySize = Math.min(54, ((Bukkit.getOnlinePlayers().size() / 9) + 1) * 9 + 9);
+        List<Player> onlinePlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
+        
+        inventorySize = Math.min(54, ((onlinePlayers.size() / 9) + 1) * 9 + 9);
         inventorySize = Math.max(27, inventorySize);
         createInventory(inventorySize);
 
         inventory.setItem(inventorySize - 5, createItem(
             Material.ARROW,
-            "§c§lBack",
-            "§7Return to main menu"
+            plugin.getLanguageManager().get("gui.player-list.back"),
+            plugin.getLanguageManager().get("gui.player-list.back-lore")
         ));
+        
+        for (int i = 0; i < Math.min(onlinePlayers.size(), inventorySize - 9); i++) {
+            inventory.setItem(i, createItem(Material.SKELETON_SKULL, "§7Loading...", "§7Please wait..."));
+        }
 
-        int slot = 0;
-        for (Player online : Bukkit.getOnlinePlayers()) {
-            if (slot >= inventorySize - 9) break;
-
-            int violations = plugin.getDatabaseManager().getPlayerViolationPoints(online.getUniqueId());
-            boolean muted = plugin.getPunishmentManager().isPlayerMuted(online.getUniqueId());
-            boolean whitelisted = plugin.getConfigManager().getWhitelistedPlayers().contains(online.getName());
-
-            List<String> lore = new ArrayList<>();
-            lore.add("§7Click to manage");
-            lore.add("");
-            lore.add("§7Violation Points: §f" + violations);
-            lore.add("§7Muted: " + (muted ? "§cYes" : "§aNo"));
-            lore.add("§7Whitelisted: " + (whitelisted ? "§aYes" : "§cNo"));
-
-            ItemStack head = new ItemStack(Material.PLAYER_HEAD);
-            SkullMeta meta = (SkullMeta) head.getItemMeta();
-            if (meta != null) {
-                meta.setOwningPlayer(online);
-                meta.setDisplayName("§e" + online.getName());
-                meta.setLore(lore);
-                head.setItemMeta(meta);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<PlayerData> dataList = new ArrayList<>();
+            int maxSlots = inventorySize - 9;
+            
+            for (int i = 0; i < onlinePlayers.size(); i++) {
+                if (i >= maxSlots) break;
+                
+                Player player = onlinePlayers.get(i);
+                int violations = plugin.getDatabaseManager().getPlayerViolationPoints(player.getUniqueId());
+                boolean muted = plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId());
+                boolean whitelisted = plugin.getConfigManager().getWhitelistedPlayers().contains(player.getName());
+                
+                dataList.add(new PlayerData(player, violations, muted, whitelisted));
             }
 
-            inventory.setItem(slot++, head);
-        }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                int slot = 0;
+                for (PlayerData data : dataList) {
+                    String yes = plugin.getLanguageManager().get("gui.player-list.yes");
+                    String no = plugin.getLanguageManager().get("gui.player-list.no");
+                    
+                    List<String> lore = new ArrayList<>();
+                    lore.add(plugin.getLanguageManager().get("gui.player-list.click-to-manage"));
+                    lore.add("");
+                    lore.add(plugin.getLanguageManager().get("gui.player-list.violation-points", "count", String.valueOf(data.violations)));
+                    lore.add(plugin.getLanguageManager().get("gui.player-list.muted", "status", data.muted ? yes : no));
+                    lore.add(plugin.getLanguageManager().get("gui.player-list.whitelisted", "status", data.whitelisted ? yes : no));
+
+                    ItemStack head = new ItemStack(Material.PLAYER_HEAD);
+                    SkullMeta meta = (SkullMeta) head.getItemMeta();
+                    if (meta != null) {
+                        meta.setOwningPlayer(data.player);
+                        meta.setDisplayName("§e" + data.player.getName());
+                        meta.setLore(lore);
+                        head.setItemMeta(meta);
+                    }
+
+                    inventory.setItem(slot++, head);
+                }
+            });
+        });
     }
+
+    private record PlayerData(Player player, int violations, boolean muted, boolean whitelisted) {}
 
     @Override
     public void handleClick(InventoryClickEvent event) {

@@ -6,11 +6,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
-public class ReportCommand implements CommandExecutor {
+public class ReportCommand implements CommandExecutor, TabCompleter {
 
     private final LoraGuard plugin;
 
@@ -21,7 +24,7 @@ public class ReportCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(plugin.getLanguageManager().get("misc.player-only"));
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("misc.players-only"));
             return true;
         }
 
@@ -41,6 +44,13 @@ public class ReportCommand implements CommandExecutor {
             return true;
         }
 
+        if (plugin.getCooldownManager().isOnReportCooldown(player.getUniqueId())) {
+            int remaining = plugin.getCooldownManager().getReportCooldownRemaining(player.getUniqueId());
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.report.cooldown", 
+                "seconds", String.valueOf(remaining)));
+            return true;
+        }
+
         StringBuilder reasonBuilder = new StringBuilder();
         for (int i = 1; i < args.length; i++) {
             reasonBuilder.append(args[i]).append(" ");
@@ -50,23 +60,20 @@ public class ReportCommand implements CommandExecutor {
         String lastMessage = plugin.getFilterManager().getLastMessage(target.getUniqueId());
 
         sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.report.sent"));
+        plugin.getCooldownManager().setReportCooldown(player.getUniqueId());
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             boolean punished = false;
 
-            // AI Check on last message
             if (lastMessage != null) {
                 try {
                     CompletableFuture<ModerationResponse> future = plugin.getApiClient().moderate(lastMessage);
-                    ModerationResponse response = future.join(); // We are already async
+                    ModerationResponse response = future.join();
 
                     if (response != null && response.getResults() != null && !response.getResults().isEmpty()) {
                         ModerationResponse.Result result = response.getResults().get(0);
                         if (result.isFlagged()) {
-                            // Valid report! Punish player
-                            Bukkit.getScheduler().runTask(plugin, () -> {
-                                plugin.getPunishmentManager().handleViolation(target, result.getHighestCategory(), result.getHighestScore(), lastMessage);
-                            });
+                            plugin.getPunishmentManager().handleViolation(target, result.getHighestCategory(), result.getHighestScore(), lastMessage);
                             punished = true;
                         }
                     }
@@ -77,10 +84,21 @@ public class ReportCommand implements CommandExecutor {
                 }
             }
 
-            // Send to Discord
             plugin.getDiscordHook().sendReport(player, target, reason, lastMessage, punished);
         });
 
         return true;
+    }
+
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return Bukkit.getOnlinePlayers().stream()
+                .map(Player::getName)
+                .filter(name -> name.toLowerCase().startsWith(args[0].toLowerCase()))
+                .filter(name -> !name.equals(sender.getName()))
+                .collect(Collectors.toList());
+        }
+        return List.of();
     }
 }

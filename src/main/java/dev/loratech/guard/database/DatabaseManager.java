@@ -3,10 +3,16 @@ package dev.loratech.guard.database;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.loratech.guard.LoraGuard;
+import dev.loratech.guard.appeal.Appeal;
 import dev.loratech.guard.cache.PunishmentCache;
 
 import java.io.File;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -47,6 +53,7 @@ public class DatabaseManager {
             File dbFile = new File(dataFolder, "database.db");
             config.setJdbcUrl("jdbc:sqlite:" + dbFile.getAbsolutePath());
             config.setDriverClassName("org.sqlite.JDBC");
+            config.setConnectionInitSql("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;");
         }
         
         config.setMaximumPoolSize(plugin.getConfigManager().getDatabasePoolSize());
@@ -68,6 +75,9 @@ public class DatabaseManager {
     }
 
     public Connection getConnection() throws SQLException {
+        if (dataSource == null || dataSource.isClosed()) {
+            throw new SQLException("Database connection is not available");
+        }
         return dataSource.getConnection();
     }
 
@@ -106,11 +116,32 @@ public class DatabaseManager {
                 "total_violations INTEGER DEFAULT 0, " +
                 "last_violation TIMESTAMP)";
 
+        String appealsTable = "CREATE TABLE IF NOT EXISTS appeals (" +
+                "id INTEGER PRIMARY KEY " + autoIncrement + ", " +
+                "uuid VARCHAR(36) NOT NULL, " +
+                "player_name VARCHAR(16) NOT NULL, " +
+                "punishment_id INTEGER NOT NULL, " +
+                "punishment_type VARCHAR(16) NOT NULL, " +
+                "reason TEXT NOT NULL, " +
+                "status VARCHAR(16) DEFAULT 'pending', " +
+                "reviewer_name VARCHAR(16), " +
+                "review_note TEXT, " +
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                "reviewed_at TIMESTAMP)";
+
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute(violationsTable);
             stmt.execute(punishmentsTable);
             stmt.execute(playerDataTable);
+            stmt.execute(appealsTable);
+            
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_violations_uuid ON violations(uuid)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_violations_timestamp ON violations(timestamp)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_punishments_uuid ON punishments(uuid)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_punishments_active_type ON punishments(active, type)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_appeals_uuid ON appeals(uuid)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_appeals_status ON appeals(status)");
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to create database tables", e);
         }
@@ -425,6 +456,194 @@ public class DatabaseManager {
         return stats;
     }
 
+    public int decayViolationPoints(int hoursThreshold, int decayAmount) {
+        String sql;
+        if (isMySQL()) {
+            sql = "UPDATE player_data SET violation_points = GREATEST(0, violation_points - ?) " +
+                  "WHERE last_violation < DATE_SUB(NOW(), INTERVAL ? HOUR) AND violation_points > 0";
+        } else {
+            sql = "UPDATE player_data SET violation_points = MAX(0, violation_points - ?) " +
+                  "WHERE last_violation < datetime('now', '-' || ? || ' hours') AND violation_points > 0";
+        }
+        
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, decayAmount);
+            stmt.setInt(2, hoursThreshold);
+            return stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to decay violation points", e);
+            return 0;
+        }
+    }
+
+    public List<ViolationRecord> getAllViolations(int limit) {
+        List<ViolationRecord> violations = new ArrayList<>();
+        String sql = "SELECT uuid, player_name, message, category, score, action, timestamp FROM violations ORDER BY timestamp DESC LIMIT ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                violations.add(new ViolationRecord(
+                    rs.getString("message"),
+                    rs.getString("category"),
+                    rs.getDouble("score"),
+                    rs.getString("action"),
+                    rs.getTimestamp("timestamp"),
+                    rs.getString("player_name"),
+                    rs.getString("uuid")
+                ));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get all violations", e);
+        }
+        return violations;
+    }
+
+    public int createAppeal(UUID playerUuid, String playerName, int punishmentId, String punishmentType, String reason) {
+        String sql = "INSERT INTO appeals (uuid, player_name, punishment_id, punishment_type, reason) VALUES (?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, playerUuid.toString());
+            stmt.setString(2, playerName);
+            stmt.setInt(3, punishmentId);
+            stmt.setString(4, punishmentType);
+            stmt.setString(5, reason);
+            stmt.executeUpdate();
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to create appeal", e);
+        }
+        return -1;
+    }
+
+    public Appeal getAppeal(int appealId) {
+        String sql = "SELECT * FROM appeals WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, appealId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return mapAppeal(rs);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get appeal", e);
+        }
+        return null;
+    }
+
+    public Appeal getPendingAppeal(UUID playerUuid) {
+        String sql = "SELECT * FROM appeals WHERE uuid = ? AND status = 'pending' LIMIT 1";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, playerUuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return mapAppeal(rs);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get pending appeal", e);
+        }
+        return null;
+    }
+
+    public List<Appeal> getPendingAppeals() {
+        List<Appeal> appeals = new ArrayList<>();
+        String sql = "SELECT * FROM appeals WHERE status = 'pending' ORDER BY created_at ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                appeals.add(mapAppeal(rs));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get pending appeals", e);
+        }
+        return appeals;
+    }
+
+    public List<Appeal> getPlayerAppeals(UUID playerUuid) {
+        List<Appeal> appeals = new ArrayList<>();
+        String sql = "SELECT * FROM appeals WHERE uuid = ? ORDER BY created_at DESC";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, playerUuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                appeals.add(mapAppeal(rs));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get player appeals", e);
+        }
+        return appeals;
+    }
+
+    public int getPendingAppealCount() {
+        String sql = "SELECT COUNT(*) as count FROM appeals WHERE status = 'pending'";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get pending appeal count", e);
+        }
+        return 0;
+    }
+
+    public boolean updateAppealStatus(int appealId, Appeal.AppealStatus status, String reviewerName, String note) {
+        String sql = "UPDATE appeals SET status = ?, reviewer_name = ?, review_note = ?, reviewed_at = " + 
+                     (isMySQL() ? "NOW()" : "datetime('now')") + " WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status.getValue());
+            stmt.setString(2, reviewerName);
+            stmt.setString(3, note);
+            stmt.setInt(4, appealId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to update appeal status", e);
+        }
+        return false;
+    }
+
+    private Appeal mapAppeal(ResultSet rs) throws SQLException {
+        return new Appeal(
+            rs.getInt("id"),
+            UUID.fromString(rs.getString("uuid")),
+            rs.getString("player_name"),
+            rs.getInt("punishment_id"),
+            rs.getString("punishment_type"),
+            rs.getString("reason"),
+            Appeal.AppealStatus.fromString(rs.getString("status")),
+            rs.getString("reviewer_name"),
+            rs.getString("review_note"),
+            rs.getTimestamp("created_at"),
+            rs.getTimestamp("reviewed_at")
+        );
+    }
+
+    public int getLatestPunishmentId(UUID playerUuid, String type) {
+        String sql = "SELECT id FROM punishments WHERE uuid = ? AND type = ? ORDER BY timestamp DESC LIMIT 1";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, playerUuid.toString());
+            stmt.setString(2, type);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get latest punishment id", e);
+        }
+        return -1;
+    }
+
     public boolean isConnected() {
         return dataSource != null && !dataSource.isClosed();
     }
@@ -454,14 +673,25 @@ public class DatabaseManager {
         public final double score;
         public final String action;
         public final Timestamp timestamp;
+        public final String playerName;
+        public final String uuid;
 
         public ViolationRecord(String message, String category, double score, String action, Timestamp timestamp) {
+            this(message, category, score, action, timestamp, null, null);
+        }
+
+        public ViolationRecord(String message, String category, double score, String action, Timestamp timestamp, String playerName, String uuid) {
             this.message = message;
             this.category = category;
             this.score = score;
             this.action = action;
             this.timestamp = timestamp;
+            this.playerName = playerName;
+            this.uuid = uuid;
         }
+
+        public String playerName() { return playerName; }
+        public String uuid() { return uuid; }
 
         public String message() {
             return message;

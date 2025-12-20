@@ -7,15 +7,13 @@ import org.bukkit.inventory.ItemStack;
 
 public class LogsGUI extends AbstractGUI {
 
-    private static final String TITLE = "§8Violation Logs";
-
     public LogsGUI(GUIManager guiManager, Player viewer) {
         super(guiManager, viewer);
     }
 
     @Override
     public String getTitle() {
-        return TITLE;
+        return plugin.getLanguageManager().get("gui.logs.title");
     }
 
     @Override
@@ -23,31 +21,47 @@ public class LogsGUI extends AbstractGUI {
         createInventory(27);
         fillBorder(27);
 
-        int total = plugin.getDatabaseManager().getTotalViolations();
-        int today = plugin.getDatabaseManager().getTodayViolations();
-
         inventory.setItem(11, createItem(
             Material.PAPER,
-            "§b§lTotal Violations",
-            "§7All time: §f" + total
+            plugin.getLanguageManager().get("gui.logs.total.title"),
+            plugin.getLanguageManager().get("gui.logs.total.lore", "count", "...")
         ));
 
         inventory.setItem(13, createItem(
             Material.CLOCK,
-            "§e§lToday's Violations",
-            "§7Today: §f" + today
+            plugin.getLanguageManager().get("gui.logs.today.title"),
+            plugin.getLanguageManager().get("gui.logs.today.lore", "count", "...")
         ));
+
+        org.bukkit.Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            int total = plugin.getDatabaseManager().getTotalViolations();
+            int today = plugin.getDatabaseManager().getTodayViolations();
+
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+                inventory.setItem(11, createItem(
+                    Material.PAPER,
+                    plugin.getLanguageManager().get("gui.logs.total.title"),
+                    plugin.getLanguageManager().get("gui.logs.total.lore", "count", String.valueOf(total))
+                ));
+
+                inventory.setItem(13, createItem(
+                    Material.CLOCK,
+                    plugin.getLanguageManager().get("gui.logs.today.title"),
+                    plugin.getLanguageManager().get("gui.logs.today.lore", "count", String.valueOf(today))
+                ));
+            });
+        });
 
         inventory.setItem(15, createItem(
             Material.CHEST,
-            "§a§lCache Info",
-            "§7Cached messages: §f" + plugin.getMessageCache().size()
+            plugin.getLanguageManager().get("gui.logs.cache.title"),
+            plugin.getLanguageManager().get("gui.logs.cache.lore", "count", String.valueOf(plugin.getMessageCache().size()))
         ));
 
         inventory.setItem(22, createItem(
             Material.ARROW,
-            "§c§lBack",
-            "§7Return to main menu"
+            plugin.getLanguageManager().get("gui.logs.back"),
+            plugin.getLanguageManager().get("gui.logs.back-lore")
         ));
     }
 

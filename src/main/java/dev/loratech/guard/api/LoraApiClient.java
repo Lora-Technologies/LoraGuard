@@ -34,49 +34,70 @@ public class LoraApiClient {
             return CompletableFuture.completedFuture(null);
         }
 
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                ModerationRequest request = new ModerationRequest(
-                    message,
-                    plugin.getConfigManager().getApiModel(),
-                    plugin.getConfigManager().getApiThreshold()
-                );
+        CompletableFuture<ModerationResponse> future = new CompletableFuture<>();
 
-                String jsonBody = gson.toJson(request);
-                
-                RequestBody body = RequestBody.create(
-                    jsonBody,
-                    MediaType.parse("application/json")
-                );
+        try {
+            ModerationRequest request = new ModerationRequest(
+                message,
+                plugin.getConfigManager().getApiModel(),
+                plugin.getConfigManager().getApiThreshold()
+            );
 
-                Request httpRequest = new Request.Builder()
-                    .url(plugin.getConfigManager().getApiBaseUrl() + "/moderations")
-                    .addHeader("Authorization", "Bearer " + plugin.getConfigManager().getApiKey())
-                    .addHeader("Content-Type", "application/json")
-                    .post(body)
-                    .build();
+            String jsonBody = gson.toJson(request);
+            
+            RequestBody body = RequestBody.create(
+                jsonBody,
+                MediaType.parse("application/json")
+            );
 
-                try (Response response = httpClient.newCall(httpRequest).execute()) {
-                    if (!response.isSuccessful()) {
-                        if (plugin.getConfigManager().isDebug()) {
-                            plugin.getLogger().warning("API error: " + response.code());
-                        }
-                        recordFailure();
-                        return null;
+            Request httpRequest = new Request.Builder()
+                .url(plugin.getConfigManager().getApiBaseUrl() + "/moderations")
+                .addHeader("Authorization", "Bearer " + plugin.getConfigManager().getApiKey())
+                .addHeader("Content-Type", "application/json")
+                .post(body)
+                .build();
+
+            httpClient.newCall(httpRequest).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    if (plugin.getConfigManager().isDebug()) {
+                        plugin.getLogger().warning("API request failed: " + e.getMessage());
                     }
+                    recordFailure();
+                    future.complete(null);
+                }
 
-                    resetFailure();
-                    String responseBody = response.body() != null ? response.body().string() : "";
-                    return gson.fromJson(responseBody, ModerationResponse.class);
+                @Override
+                public void onResponse(Call call, Response response) {
+                    try (response) {
+                        if (!response.isSuccessful()) {
+                            if (plugin.getConfigManager().isDebug()) {
+                                plugin.getLogger().warning("API error: " + response.code());
+                            }
+                            recordFailure();
+                            future.complete(null);
+                            return;
+                        }
+
+                        resetFailure();
+                        String responseBody = response.body() != null ? response.body().string() : "";
+                        
+                        if (plugin.getConfigManager().isDebug()) {
+                            plugin.getLogger().info("[DEBUG] API Response: " + responseBody);
+                        }
+                        
+                        future.complete(gson.fromJson(responseBody, ModerationResponse.class));
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
                 }
-            } catch (IOException e) {
-                if (plugin.getConfigManager().isDebug()) {
-                    plugin.getLogger().warning("API request failed: " + e.getMessage());
-                }
-                recordFailure();
-                return null;
-            }
-        });
+            });
+
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        
+        return future;
     }
 
     private boolean isCircuitOpen() {
@@ -88,7 +109,7 @@ public class LoraApiClient {
                 long resetTime = lastFailureTime + (plugin.getConfigManager().getCircuitBreakerResetSeconds() * 1000L);
                 
                 if (now > resetTime) {
-                    failureCount = 0; // Reset after cooldown
+                    failureCount = 0;
                     return false;
                 }
                 return true;

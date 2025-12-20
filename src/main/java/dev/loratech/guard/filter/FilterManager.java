@@ -3,7 +3,9 @@ package dev.loratech.guard.filter;
 import dev.loratech.guard.LoraGuard;
 import org.bukkit.entity.Player;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
@@ -23,15 +25,6 @@ public class FilterManager {
     }
 
     public FilterResult check(Player player, String message) {
-        // Fallback/Local Blacklist Check
-        if (plugin.getConfigManager().isBlacklistEnabled()) {
-            for (String word : plugin.getConfigManager().getBlacklistedWords()) {
-                if (message.toLowerCase().contains(word.toLowerCase())) {
-                    return FilterResult.deny(FilterType.BLACKLIST, plugin.getLanguageManager().getPrefixed("moderation.blocked"));
-                }
-            }
-        }
-
         if (plugin.getConfigManager().isAntiSpamEnabled()) {
             FilterResult spamResult = checkSpam(player, message);
             if (!spamResult.isAllowed()) {

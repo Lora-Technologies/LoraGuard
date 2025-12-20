@@ -1,6 +1,7 @@
 package dev.loratech.guard.command;
 
 import dev.loratech.guard.LoraGuard;
+import dev.loratech.guard.appeal.Appeal;
 import dev.loratech.guard.database.DatabaseManager;
 import dev.loratech.guard.gui.MainMenuGUI;
 import dev.loratech.guard.util.TextUtil;
@@ -12,6 +13,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +25,8 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
     private final LoraGuard plugin;
     private static final List<String> SUBCOMMANDS = Arrays.asList(
         "reload", "toggle", "stats", "history", "clear", "whitelist", 
-        "mute", "unmute", "test", "setlang", "gui", "help"
+        "mute", "unmute", "test", "setlang", "gui", "help",
+        "bulkmute", "bulkunmute", "export", "appeal"
     );
 
     public LoraCommand(LoraGuard plugin) {
@@ -55,6 +59,10 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             case "test" -> handleTest(sender, args);
             case "setlang" -> handleSetLang(sender, args);
             case "gui" -> handleGUI(sender);
+            case "bulkmute" -> handleBulkMute(sender, args);
+            case "bulkunmute" -> handleBulkUnmute(sender);
+            case "export" -> handleExport(sender, args);
+            case "appeal" -> handleAppeal(sender, args);
             case "help" -> sendHelp(sender);
             default -> sendHelp(sender);
         }
@@ -105,24 +113,24 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
+        OfflinePlayer target = resolvePlayer(args[1]);
+        if (target == null) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.player-not-found"));
+            return;
+        }
+
         sender.sendMessage(plugin.getLanguageManager().getPrefixed("misc.loading"));
         
+        UUID targetUuid = target.getUniqueId();
+        String targetName = target.getName() != null ? target.getName() : args[1];
+        
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            OfflinePlayer target = resolvePlayer(args[1]);
-            if (target == null) {
-                Bukkit.getScheduler().runTask(plugin, () -> 
-                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.player-not-found")));
-                return;
-            }
-
             List<DatabaseManager.ViolationRecord> history = plugin.getDatabaseManager()
-                .getPlayerHistory(target.getUniqueId(), 10);
+                .getPlayerHistory(targetUuid, 10);
 
-            String playerName = target.getName() != null ? target.getName() : args[1];
-            
             Bukkit.getScheduler().runTask(plugin, () -> {
                 sender.sendMessage(plugin.getLanguageManager().get("commands.history.header", 
-                    "player", playerName));
+                    "player", targetName));
 
                 if (history.isEmpty()) {
                     sender.sendMessage(plugin.getLanguageManager().get("commands.history.empty"));
@@ -146,21 +154,22 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            OfflinePlayer target = resolvePlayer(args[1]);
-            if (target == null) {
-                Bukkit.getScheduler().runTask(plugin, () -> 
-                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.player-not-found")));
-                return;
-            }
+        OfflinePlayer target = resolvePlayer(args[1]);
+        if (target == null) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.player-not-found"));
+            return;
+        }
+        
+        UUID targetUuid = target.getUniqueId();
+        String targetName = target.getName() != null ? target.getName() : args[1];
 
-            String playerName = target.getName() != null ? target.getName() : args[1];
-            plugin.getDatabaseManager().clearPlayerHistory(target.getUniqueId());
-            plugin.getDatabaseManager().resetViolationPoints(target.getUniqueId());
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getDatabaseManager().clearPlayerHistory(targetUuid);
+            plugin.getDatabaseManager().resetViolationPoints(targetUuid);
             
             Bukkit.getScheduler().runTask(plugin, () -> 
                 sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.clear.success",
-                    "player", playerName)));
+                    "player", targetName)));
         });
     }
 
@@ -253,6 +262,16 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
         String message = String.join(" ", Arrays.copyOfRange(args, 1, args.length));
         sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.test.checking"));
 
+        if (plugin.getConfigManager().isBlacklistEnabled()) {
+            for (String word : plugin.getConfigManager().getBlacklistedWords()) {
+                if (message.toLowerCase().contains(word.toLowerCase())) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.test.result-flagged",
+                        "categories", "blacklist (" + word + ")"));
+                    return;
+                }
+            }
+        }
+
         plugin.getApiClient().moderate(message).thenAccept(response -> {
             if (response == null || response.getResults() == null || response.getResults().isEmpty()) {
                 sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.test.result-safe"));
@@ -300,6 +319,176 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
         }
 
         new MainMenuGUI(plugin.getGUIManager(), player).open();
+    }
+
+    private void handleBulkMute(CommandSender sender, String[] args) {
+        if (!plugin.getConfigManager().isBulkOperationsEnabled()) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.disabled"));
+            return;
+        }
+
+        String duration = args.length > 1 ? args[1] : "10m";
+        int minutes = parseDuration(duration);
+
+        List<Player> targets = new ArrayList<>();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (!player.hasPermission("loraguard.bypass") && 
+                !plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId())) {
+                targets.add(player);
+                if (targets.size() >= plugin.getConfigManager().getBulkOperationsLimit()) {
+                    break;
+                }
+            }
+        }
+
+        if (targets.isEmpty()) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.no-targets"));
+            return;
+        }
+
+        for (Player target : targets) {
+            plugin.getPunishmentManager().mute(target, "Bulk mute by " + sender.getName(), minutes);
+        }
+
+        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.mute-success",
+            "count", String.valueOf(targets.size())));
+    }
+
+    private void handleBulkUnmute(CommandSender sender) {
+        if (!plugin.getConfigManager().isBulkOperationsEnabled()) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.disabled"));
+            return;
+        }
+
+        int count = 0;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            if (plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId())) {
+                plugin.getPunishmentManager().unmute(player.getUniqueId());
+                count++;
+            }
+        }
+
+        if (count == 0) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.no-targets"));
+            return;
+        }
+
+        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.unmute-success",
+            "count", String.valueOf(count)));
+    }
+
+    private void handleExport(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                "usage", "/lg export <all|player|stats> [format] [player]"));
+            return;
+        }
+
+        String type = args[1].toLowerCase();
+        String format = args.length > 2 ? args[2].toLowerCase() : "json";
+
+        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.export.started"));
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            File result = null;
+            
+            try {
+                if (type.equals("all")) {
+                    if (format.equals("csv")) {
+                        result = plugin.getExportManager().exportAllViolationsToCsv().join();
+                    } else {
+                        result = plugin.getExportManager().exportAllViolationsToJson().join();
+                    }
+                } else if (type.equals("stats")) {
+                    result = plugin.getExportManager().exportStatsToCsv().join();
+                } else if (type.equals("player") && args.length > 3) {
+                    OfflinePlayer target = resolvePlayer(args[3]);
+                    if (target != null) {
+                        String playerName = target.getName() != null ? target.getName() : args[3];
+                        if (format.equals("csv")) {
+                            result = plugin.getExportManager().exportViolationsToCsv(target.getUniqueId(), playerName).join();
+                        } else {
+                            result = plugin.getExportManager().exportViolationsToJson(target.getUniqueId(), playerName).join();
+                        }
+                    }
+                }
+
+                File finalResult = result;
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (finalResult != null) {
+                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.export.success",
+                            "file", finalResult.getName()));
+                    } else {
+                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.export.failed"));
+                    }
+                });
+            } catch (Exception e) {
+                Bukkit.getScheduler().runTask(plugin, () -> 
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.export.failed")));
+            }
+        });
+    }
+
+    private void handleAppeal(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.list"));
+            sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.approve"));
+            sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.deny"));
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+
+        switch (action) {
+            case "list" -> {
+                List<Appeal> appeals = plugin.getAppealManager().getPendingAppeals();
+                if (appeals.isEmpty()) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.bulk.no-targets"));
+                    return;
+                }
+                sender.sendMessage("§b§lPending Appeals (" + appeals.size() + "):");
+                for (Appeal appeal : appeals) {
+                    sender.sendMessage("§7#" + appeal.getId() + " §f" + appeal.getPlayerName() + 
+                        " §8- §e" + appeal.getPunishmentType());
+                }
+            }
+            case "approve" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                        "usage", "/lg appeal approve <id> [note]"));
+                    return;
+                }
+                try {
+                    int id = Integer.parseInt(args[2]);
+                    String note = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) : null;
+                    if (plugin.getAppealManager().approveAppeal(id, sender.getName(), note)) {
+                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.approved-staff", "player", "ID#" + id));
+                    } else {
+                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
+                    }
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
+                }
+            }
+            case "deny" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                        "usage", "/lg appeal deny <id> [note]"));
+                    return;
+                }
+                try {
+                    int id = Integer.parseInt(args[2]);
+                    String note = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) : null;
+                    if (plugin.getAppealManager().denyAppeal(id, sender.getName(), note)) {
+                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.denied-staff", "player", "ID#" + id));
+                    } else {
+                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
+                    }
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
+                }
+            }
+        }
     }
 
     private void sendHelp(CommandSender sender) {
@@ -366,6 +555,15 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             }
             if (sub.equals("setlang")) {
                 return Arrays.asList("tr", "en");
+            }
+            if (sub.equals("export")) {
+                return Arrays.asList("all", "player", "stats");
+            }
+            if (sub.equals("appeal")) {
+                return Arrays.asList("list", "approve", "deny");
+            }
+            if (sub.equals("bulkmute")) {
+                return Arrays.asList("5m", "10m", "30m", "1h", "1d");
             }
         }
 

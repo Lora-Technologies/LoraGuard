@@ -1,6 +1,7 @@
 package dev.loratech.guard.punishment;
 
 import dev.loratech.guard.LoraGuard;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -134,13 +135,8 @@ public class PunishmentManager {
             "reason", reason, "duration", durationText);
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            player.kickPlayer(message);
-            // Use BanList.Type.NAME (deprecated but works) or modern if available.
-            // Since we don't have full context on Paper version API changes in this env, 
-            // I'll stick to what compiles but suppress deprecation or use the string based one if needed.
-            // Actually, for 1.21 Paper, we should use banIp or banPlayer on the server or profile ban.
-            // Let's use the player.ban() method which is modern and cleaner.
-            player.ban(message, minutes > 0 ? java.time.Duration.ofMinutes(minutes) : null, reason);
+            player.kick(LegacyComponentSerializer.legacySection().deserialize(message));
+            player.ban(message, minutes > 0 ? java.time.Duration.ofMinutes(minutes) : null, "LoraGuard");
         });
 
         if (plugin.getConfigManager().isStaffAlertEnabled()) {
@@ -174,34 +170,38 @@ public class PunishmentManager {
             return;
         }
 
-        String alert = plugin.getLanguageManager().get("notifications.staff-alert",
-            "player", violator.getName(), "message", message);
-        String categoryInfo = plugin.getLanguageManager().get("notifications.category",
-            "category", category, "score", String.format("%.2f", score));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            String alert = plugin.getLanguageManager().get("notifications.staff-alert",
+                "player", violator.getName(), "message", message);
+            String categoryInfo = plugin.getLanguageManager().get("notifications.category",
+                "category", category, "score", String.format("%.2f", score));
 
-        String permission = plugin.getConfigManager().getStaffPermission();
-        String soundName = plugin.getConfigManager().getAlertSound();
+            String permission = plugin.getConfigManager().getStaffPermission();
+            String soundName = plugin.getConfigManager().getAlertSound();
 
-        for (Player staff : Bukkit.getOnlinePlayers()) {
-            if (staff.hasPermission(permission)) {
-                staff.sendMessage(alert);
-                staff.sendMessage(categoryInfo);
-                
-                try {
-                    org.bukkit.Sound sound = org.bukkit.Sound.valueOf(soundName);
-                    staff.playSound(staff.getLocation(), sound, 1.0f, 1.0f);
-                } catch (IllegalArgumentException ignored) {}
+            for (Player staff : Bukkit.getOnlinePlayers()) {
+                if (staff.hasPermission(permission)) {
+                    staff.sendMessage(alert);
+                    staff.sendMessage(categoryInfo);
+                    
+                    try {
+                        org.bukkit.Sound sound = org.bukkit.Sound.valueOf(soundName);
+                        staff.playSound(staff.getLocation(), sound, 1.0f, 1.0f);
+                    } catch (IllegalArgumentException ignored) {}
+                }
             }
-        }
+        });
     }
 
     private void broadcastToStaff(String message) {
         String permission = plugin.getConfigManager().getStaffPermission();
-        for (Player staff : Bukkit.getOnlinePlayers()) {
-            if (staff.hasPermission(permission)) {
-                staff.sendMessage(plugin.getLanguageManager().getPrefix() + message);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (Player staff : Bukkit.getOnlinePlayers()) {
+                if (staff.hasPermission(permission)) {
+                    staff.sendMessage(plugin.getLanguageManager().getPrefix() + message);
+                }
             }
-        }
+        });
     }
 
     private int parseDuration(String duration) {

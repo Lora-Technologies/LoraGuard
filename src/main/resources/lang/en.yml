@@ -90,16 +90,179 @@ notifications:
 gui:
   main-menu:
     title: "&8LoraGuard Control Panel"
-    stats: "&bStatistics"
-    players: "&ePlayer Management"
-    settings: "&aSettings"
-    logs: "&7Violation Logs"
-  player-menu:
+    stats:
+      title: "&b&lStatistics"
+      lore: "&7Click to view statistics"
+      total: "&7Total Violations: &f{count}"
+      today: "&7Today: &f{count}"
+      cache: "&7Cache: &f{count}"
+    players:
+      title: "&e&lPlayer Management"
+      lore: "&7Click to manage players"
+      online: "&7Online Players: &f{count}"
+    toggle:
+      title: "&a&lToggle Moderation"
+      lore: "&7Click to toggle moderation"
+      status: "&7Status: {status}"
+      enabled: "&aENABLED"
+      disabled: "&cDISABLED"
+    logs:
+      title: "&7&lViolation Logs"
+      lore: "&7Click to view recent logs"
+    api:
+      title: "&d&lAPI Status"
+      status: "&7Lora API Status: {status}"
+      model: "&7Model: &f{model}"
+      threshold: "&7Threshold: &f{threshold}"
+  player-list:
+    title: "&8Player Management"
+    back: "&c&lBack"
+    back-lore: "&7Return to main menu"
+    click-to-manage: "&7Click to manage"
+    violation-points: "&7Violation Points: &f{count}"
+    muted: "&7Muted: {status}"
+    whitelisted: "&7Whitelisted: {status}"
+    yes: "&cYes"
+    no: "&aNo"
+  logs:
+    title: "&8Violation Logs"
+    total:
+      title: "&b&lTotal Violations"
+      lore: "&7All time: &f{count}"
+    today:
+      title: "&e&lToday's Violations"
+      lore: "&7Today: &f{count}"
+    cache:
+      title: "&a&lCache Info"
+      lore: "&7Cached messages: &f{count}"
+    back: "&c&lBack"
+    back-lore: "&7Return to main menu"
+  player-detail:
     title: "&8Player: {player}"
-    history: "&eViolation History"
-    punish: "&cPunish"
-    whitelist: "&aAdd to Trusted List"
-    clear: "&4Clear History"
+    uuid: "&7UUID: &f{uuid}..."
+    violation-points: "&7Violation Points: &f{count}"
+    history:
+      title: "&e&lViolation History"
+      recent: "&7Recent violations:"
+      empty: "&aNo violations found"
+    mute:
+      title: "&c&lMute Player"
+      lore: "&7Click to mute for 10 minutes"
+    unmute:
+      title: "&c&lUnmute Player"
+      lore: "&7Click to unmute"
+      remaining: "&7Remaining: &f{time}"
+    whitelist-add:
+      title: "&a&lAdd to Whitelist"
+      lore: "&7Click to toggle whitelist status"
+    whitelist-remove:
+      title: "&c&lRemove from Whitelist"
+      lore: "&7Click to toggle whitelist status"
+    current-status: "&7Current: {status}"
+    status-whitelisted: "&aWhitelisted"
+    status-not-whitelisted: "&cNot Whitelisted"
+    warn:
+      title: "&e&lWarn"
+      lore: "&7Issue a warning"
+      sent: "&aWarning sent to {player}"
+    kick:
+      title: "&c&lKick"
+      lore: "&7Kick from server"
+    ban:
+      title: "&4&lBan (1 Day)"
+      lore: "&7Ban for 1 day"
+    clear:
+      title: "&4&lClear History"
+      lore: "&7Clear all violation history"
+    back: "&c&lBack"
+    back-lore: "&7Return to player list"
+
+appeal:
+  approved: "&aYour appeal has been approved! {note}"
+  denied: "&cYour appeal has been denied. {note}"
+  approved-staff: "&a{player}'s appeal has been approved!"
+  denied-staff: "&c{player}'s appeal has been denied!"
+  staff-notify: "&e&lNew Appeal! &7{player} appealed their {type}. &8(ID: {id})"
+  cooldown: "&cPlease wait before submitting another appeal."
+  already-pending: "&cYou already have a pending appeal."
+  submitted: "&aYour appeal has been submitted!"
+  not-found: "&cAppeal not found."
+
+commands:
+  report:
+    cooldown: "&cPlease wait {seconds} seconds before reporting again."
+  bulk:
+    mute-success: "&a{count} players have been muted!"
+    unmute-success: "&a{count} players have been unmuted!"
+    no-targets: "&cNo valid targets found."
+    disabled: "&cBulk operations are disabled."
+  export:
+    started: "&7Exporting data..."
+    success: "&aExport completed! File: &f{file}"
+    failed: "&cExport failed!"
+  appeal:
+    list: "&7/lg appeal list &8- &fView pending appeals"
+    approve: "&7/lg appeal approve <id> &8- &fApprove an appeal"
+    deny: "&7/lg appeal deny <id> &8- &fDeny an appeal"
+
+punishments:
+  mute:
+    expired: "&aYour mute has expired! You can speak again."
+
+gui:
+  pagination:
+    previous: "&e« Previous Page"
+    next: "&eNext Page »"
+    page-info: "&7Page {current}/{total}"
+    page-display: "&6Page {current} of {total}"
+    total-items: "&7Total: {count} items"
+    back: "&c&lBack"
+    back-lore: "&7Return to previous menu"
+  player-list:
+    title: "&8Player Management"
+    yes: "&aYes"
+    no: "&cNo"
+    click-to-manage: "&eClick to manage this player"
+    violation-points: "&7Violations: &f{count}"
+    muted: "&7Muted: {status}"
+    whitelisted: "&7Whitelisted: {status}"
+    sort:
+      title: "&e&lSort Players"
+      current: "&7Current: &f{mode}"
+      click-to-change: "&eClick to change sort mode"
+      name: "Name"
+      violations: "Violations"
+      muted: "Muted First"
+    refresh: "&a&lRefresh"
+    refresh-lore: "&7Click to refresh player list"
+  appeals:
+    title: "&8Appeal Management"
+    pending-count: "&e&l{count} Pending Appeals"
+    pending-lore: "&7Click to view pending appeals"
+    type: "&7Type: &f{type}"
+    date: "&7Date: &f{date}"
+    reason-title: "&7Reason:"
+    click-to-review: "&eClick to review this appeal"
+    appeal-title: "&e{player} &8(#{id})"
+  appeal-detail:
+    title: "&8Appeal #{id}"
+    player: "&7Player: &f{player}"
+    uuid: "&7UUID: &f{uuid}"
+    type: "&7Type: &f{type}"
+    date: "&7Date: &f{date}"
+    status: "&7Status: {status}"
+    status-pending: "Pending"
+    status-approved: "Approved"
+    status-denied: "Denied"
+    reason-title: "&e&lAppeal Reason"
+    approve: "&a&lApprove Appeal"
+    approve-lore: "&7Click to approve this appeal"
+    deny: "&c&lDeny Appeal"
+    deny-lore: "&7Click to deny this appeal"
+    reviewed: "&7Already Reviewed"
+    reviewed-by: "&7Reviewed by: &f{reviewer}"
+    back: "&c&lBack"
+    back-lore: "&7Return to appeal list"
 
 misc:
   permanent: "Permanent"

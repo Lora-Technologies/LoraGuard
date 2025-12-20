@@ -29,6 +29,14 @@ public class ChatListener implements Listener {
         Player player = event.getPlayer();
         String message = PlainTextComponentSerializer.plainText().serialize(event.message());
 
+        if (plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId())) {
+            event.setCancelled(true);
+            String remaining = plugin.getPunishmentManager().getMuteRemainingFormatted(player.getUniqueId());
+            player.sendMessage(plugin.getLanguageManager().getPrefixed("punishments.mute.cannot-speak", 
+                "remaining", remaining));
+            return;
+        }
+
         if (!plugin.isModEnabled()) {
             return;
         }
@@ -44,14 +52,6 @@ public class ChatListener implements Listener {
             }
         }
 
-        if (plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId())) {
-            event.setCancelled(true);
-            String remaining = plugin.getPunishmentManager().getMuteRemainingFormatted(player.getUniqueId());
-            player.sendMessage(plugin.getLanguageManager().getPrefixed("punishments.mute.cannot-speak", 
-                "remaining", remaining));
-            return;
-        }
-
         FilterManager.FilterResult filterResult = plugin.getFilterManager().check(player, message);
         if (!filterResult.isAllowed()) {
             event.setCancelled(true);
@@ -62,6 +62,17 @@ public class ChatListener implements Listener {
         if (filterResult.isModified()) {
             message = filterResult.modifiedMessage();
             event.message(net.kyori.adventure.text.Component.text(message));
+        }
+
+        if (plugin.getConfigManager().isBlacklistEnabled()) {
+            for (String word : plugin.getConfigManager().getBlacklistedWords()) {
+                if (message.toLowerCase().contains(word.toLowerCase())) {
+                    event.setCancelled(true);
+                    player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.blocked"));
+                    plugin.getPunishmentManager().handleViolation(player, "blacklist", 1.0, message);
+                    return;
+                }
+            }
         }
 
         MessageCache.CachedResult cached = plugin.getMessageCache().get(message);
@@ -85,6 +96,14 @@ public class ChatListener implements Listener {
             }
 
             ModerationResponse.Result result = response.getResults().get(0);
+            
+            if (plugin.getConfigManager().isDebug()) {
+                plugin.getLogger().info("[DEBUG] Message: " + finalMessage);
+                plugin.getLogger().info("[DEBUG] Flagged: " + result.isFlagged());
+                plugin.getLogger().info("[DEBUG] Categories: " + result.getFlaggedCategories());
+                plugin.getLogger().info("[DEBUG] Highest: " + result.getHighestCategory() + " (" + result.getHighestScore() + ")");
+            }
+            
             plugin.getMessageCache().put(finalMessage, result);
 
             if (result.isFlagged()) {

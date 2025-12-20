@@ -117,10 +117,19 @@ punishments:
     inappropriate_username: 1
     griefing: 1
     irl_trading: 2
+    blacklist: 3
 
   # Time in hours before a violation count decreases
   # İhlal sayısının azalması için geçmesi gereken saat
   violation-cooldown-hours: 24
+  
+  # Amount of points to decay per check
+  # Her kontrolde azaltılacak puan miktarı
+  violation-decay-amount: 1
+  
+  # How often to check for decay (in minutes)
+  # Ne sıklıkla kontrol edilecek (dakika cinsinden)
+  violation-decay-check-minutes: 60
 
 categories:
   # Enable or disable specific detection categories
@@ -151,8 +160,13 @@ blacklist:
   # Yerel kara liste sistemi
   enabled: true
   words:
-    - "badword1"
-    - "badword2"
+    - "piç"
+    - "orospu"
+    - "siktir"
+    - "amk"
+    - "aq"
+    - "fuck"
+    - "shit"
 
 filters:
   # Simple anti-spam filter
@@ -189,7 +203,7 @@ filters:
     min-length: 5
     # Action: "lowercase" or "block"
     # Eylem: "lowercase" (küçült) veya "block" (engelle)
-    action: "lowercase"
+    action: "block"
   
   # Link filter
   # Link filtresi
@@ -218,6 +232,11 @@ notifications:
   # Yetkililer için çalınacak ses (Minecraft ses adı)
   sound: "ENTITY_EXPERIENCE_ORB_PICKUP"
   
+  # Unmute notification settings
+  # Susturma kaldırma bildirim ayarları
+  unmute-sound-enabled: true
+  unmute-sound: "ENTITY_PLAYER_LEVELUP"
+  
   # Discord webhook integration
   # Discord webhook entegrasyonu
   discord:
@@ -236,6 +255,29 @@ whitelist:
   # Players who are whitelisted
   # Beyaz listedeki oyuncular
   players: []
+
+report:
+  # Cooldown between reports (seconds)
+  # Raporlar arası bekleme süresi (saniye)
+  cooldown-seconds: 60
+
+appeal:
+  # Enable/disable appeal system
+  # İtiraz sistemini etkinleştir/devre dışı bırak
+  enabled: true
+  
+  # Cooldown between appeals (seconds)
+  # İtirazlar arası bekleme süresi (saniye)
+  cooldown-seconds: 3600
+
+bulk-operations:
+  # Enable bulk mute/unmute/ban operations
+  # Toplu susturma/ban işlemlerini etkinleştir
+  enabled: true
+  
+  # Maximum players per bulk operation
+  # Toplu işlem başına maksimum oyuncu
+  max-players: 50
 
 # Default language (en, tr, etc.)
 # Varsayılan dil (en, tr, vb.)

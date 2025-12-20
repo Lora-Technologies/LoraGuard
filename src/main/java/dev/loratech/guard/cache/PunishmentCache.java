@@ -10,8 +10,6 @@ import java.util.concurrent.ConcurrentHashMap;
 public class PunishmentCache {
 
     private final LoraGuard plugin;
-    // UUID -> Expiration Timestamp (milliseconds)
-    // -1 means permanent
     private final Map<UUID, Long> activeMutes = new ConcurrentHashMap<>();
 
     public PunishmentCache(LoraGuard plugin) {
@@ -49,7 +47,7 @@ public class PunishmentCache {
         
         long expiration = activeMutes.get(uuid);
         if (expiration == -1) {
-            return true; // Permanent
+            return true;
         }
         
         if (System.currentTimeMillis() > expiration) {
@@ -65,6 +63,27 @@ public class PunishmentCache {
 
     public long getMuteExpiration(UUID uuid) {
         return activeMutes.getOrDefault(uuid, 0L);
+    }
+
+    public boolean checkAndNotifyUnmute(UUID uuid) {
+        if (!activeMutes.containsKey(uuid)) {
+            return false;
+        }
+        
+        long expiration = activeMutes.get(uuid);
+        if (expiration == -1) {
+            return false;
+        }
+        
+        if (System.currentTimeMillis() > expiration) {
+            activeMutes.remove(uuid);
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                plugin.getDatabaseManager().removeMute(uuid);
+            });
+            return true;
+        }
+        
+        return false;
     }
 
     public void clear() {

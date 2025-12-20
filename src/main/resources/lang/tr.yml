@@ -90,16 +90,179 @@ notifications:
 gui:
   main-menu:
     title: "&8LoraGuard Yönetim Paneli"
-    stats: "&bİstatistikler"
-    players: "&eOyuncu Yönetimi"
-    settings: "&aAyarlar"
-    logs: "&7İhlal Logları"
-  player-menu:
+    stats:
+      title: "&b&lİstatistikler"
+      lore: "&7İstatistikleri görüntülemek için tıkla"
+      total: "&7Toplam İhlal: &f{count}"
+      today: "&7Bugün: &f{count}"
+      cache: "&7Önbellek: &f{count}"
+    players:
+      title: "&e&lOyuncu Yönetimi"
+      lore: "&7Oyuncuları yönetmek için tıkla"
+      online: "&7Çevrimiçi Oyuncular: &f{count}"
+    toggle:
+      title: "&a&lModerasyon Aç/Kapat"
+      lore: "&7Moderasyonu açmak/kapatmak için tıkla"
+      status: "&7Durum: {status}"
+      enabled: "&aAKTİF"
+      disabled: "&cDEVRE DIŞI"
+    logs:
+      title: "&7&lİhlal Logları"
+      lore: "&7Son logları görüntülemek için tıkla"
+    api:
+      title: "&d&lAPI Durumu"
+      status: "&7Lora API Durumu: {status}"
+      model: "&7Model: &f{model}"
+      threshold: "&7Eşik: &f{threshold}"
+  player-list:
+    title: "&8Oyuncu Yönetimi"
+    back: "&c&lGeri"
+    back-lore: "&7Ana menüye dön"
+    click-to-manage: "&7Yönetmek için tıkla"
+    violation-points: "&7İhlal Puanı: &f{count}"
+    muted: "&7Susturulmuş: {status}"
+    whitelisted: "&7Güvenilir: {status}"
+    yes: "&cEvet"
+    no: "&aHayır"
+  logs:
+    title: "&8İhlal Logları"
+    total:
+      title: "&b&lToplam İhlaller"
+      lore: "&7Tüm zamanlar: &f{count}"
+    today:
+      title: "&e&lBugünkü İhlaller"
+      lore: "&7Bugün: &f{count}"
+    cache:
+      title: "&a&lÖnbellek Bilgisi"
+      lore: "&7Önbellekteki mesajlar: &f{count}"
+    back: "&c&lGeri"
+    back-lore: "&7Ana menüye dön"
+  player-detail:
     title: "&8Oyuncu: {player}"
-    history: "&eİhlal Geçmişi"
-    punish: "&cCeza Ver"
-    whitelist: "&aGüvenilir Listeye Ekle"
-    clear: "&4Geçmişi Temizle"
+    uuid: "&7UUID: &f{uuid}..."
+    violation-points: "&7İhlal Puanı: &f{count}"
+    history:
+      title: "&e&lİhlal Geçmişi"
+      recent: "&7Son ihlaller:"
+      empty: "&aİhlal bulunamadı"
+    mute:
+      title: "&c&lOyuncuyu Sustur"
+      lore: "&710 dakika susturmak için tıkla"
+    unmute:
+      title: "&c&lSusturmayı Kaldır"
+      lore: "&7Susturmayı kaldırmak için tıkla"
+      remaining: "&7Kalan: &f{time}"
+    whitelist-add:
+      title: "&a&lGüvenilir Listeye Ekle"
+      lore: "&7Güvenilir durumunu değiştirmek için tıkla"
+    whitelist-remove:
+      title: "&c&lGüvenilir Listeden Çıkar"
+      lore: "&7Güvenilir durumunu değiştirmek için tıkla"
+    current-status: "&7Mevcut: {status}"
+    status-whitelisted: "&aGüvenilir"
+    status-not-whitelisted: "&cGüvenilir Değil"
+    warn:
+      title: "&e&lUyar"
+      lore: "&7Uyarı ver"
+      sent: "&a{player} oyuncusuna uyarı gönderildi"
+    kick:
+      title: "&c&lAt"
+      lore: "&7Sunucudan at"
+    ban:
+      title: "&4&lYasakla (1 Gün)"
+      lore: "&71 gün yasakla"
+    clear:
+      title: "&4&lGeçmişi Temizle"
+      lore: "&7Tüm ihlal geçmişini temizle"
+    back: "&c&lGeri"
+    back-lore: "&7Oyuncu listesine dön"
+
+appeal:
+  approved: "&aİtirazın onaylandı! {note}"
+  denied: "&cİtirazın reddedildi. {note}"
+  approved-staff: "&a{player} oyuncusunun itirazı onaylandı!"
+  denied-staff: "&c{player} oyuncusunun itirazı reddedildi!"
+  staff-notify: "&e&lYeni İtiraz! &7{player} {type} cezasına itiraz etti. &8(ID: {id})"
+  cooldown: "&cLütfen başka bir itiraz göndermeden önce bekleyin."
+  already-pending: "&cZaten bekleyen bir itirazınız var."
+  submitted: "&aİtirazınız gönderildi!"
+  not-found: "&cİtiraz bulunamadı."
+
+commands:
+  report:
+    cooldown: "&cTekrar raporlamak için {seconds} saniye bekleyin."
+  bulk:
+    mute-success: "&a{count} oyuncu susturuldu!"
+    unmute-success: "&a{count} oyuncunun susturması kaldırıldı!"
+    no-targets: "&cGeçerli hedef bulunamadı."
+    disabled: "&cToplu işlemler devre dışı."
+  export:
+    started: "&7Veriler dışa aktarılıyor..."
+    success: "&aDışa aktarma tamamlandı! Dosya: &f{file}"
+    failed: "&cDışa aktarma başarısız!"
+  appeal:
+    list: "&7/lg appeal list &8- &fBekleyen itirazları görüntüle"
+    approve: "&7/lg appeal approve <id> &8- &fİtirazı onayla"
+    deny: "&7/lg appeal deny <id> &8- &fİtirazı reddet"
+
+punishments:
+  mute:
+    expired: "&aSusturma süreniz doldu! Artık konuşabilirsiniz."
+
+gui:
+  pagination:
+    previous: "&e« Önceki Sayfa"
+    next: "&eSonraki Sayfa »"
+    page-info: "&7Sayfa {current}/{total}"
+    page-display: "&6Sayfa {current} / {total}"
+    total-items: "&7Toplam: {count} öğe"
+    back: "&c&lGeri"
+    back-lore: "&7Önceki menüye dön"
+  player-list:
+    title: "&8Oyuncu Yönetimi"
+    yes: "&aEvet"
+    no: "&cHayır"
+    click-to-manage: "&eBu oyuncuyu yönetmek için tıkla"
+    violation-points: "&7İhlaller: &f{count}"
+    muted: "&7Susturulmuş: {status}"
+    whitelisted: "&7Beyaz Listede: {status}"
+    sort:
+      title: "&e&lOyuncuları Sırala"
+      current: "&7Mevcut: &f{mode}"
+      click-to-change: "&eSıralama modunu değiştirmek için tıkla"
+      name: "İsim"
+      violations: "İhlaller"
+      muted: "Önce Susturulanlar"
+    refresh: "&a&lYenile"
+    refresh-lore: "&7Oyuncu listesini yenilemek için tıkla"
+  appeals:
+    title: "&8İtiraz Yönetimi"
+    pending-count: "&e&l{count} Bekleyen İtiraz"
+    pending-lore: "&7Bekleyen itirazları görüntülemek için tıkla"
+    type: "&7Tür: &f{type}"
+    date: "&7Tarih: &f{date}"
+    reason-title: "&7Sebep:"
+    click-to-review: "&7İncelemek için tıkla"
+    appeal-title: "&e{player} &8(#{id})"
+  appeal-detail:
+    title: "&8İtiraz #{id}"
+    player: "&7Oyuncu: &f{player}"
+    uuid: "&7UUID: &f{uuid}"
+    type: "&7Tür: &f{type}"
+    date: "&7Tarih: &f{date}"
+    status: "&7Durum: {status}"
+    status-pending: "Beklemede"
+    status-approved: "Onaylandı"
+    status-denied: "Reddedildi"
+    reason-title: "&e&lİtiraz Sebebi"
+    approve: "&a&lİtirazı Onayla"
+    approve-lore: "&7Bu itirazı onaylamak için tıkla"
+    deny: "&c&lİtirazı Reddet"
+    deny-lore: "&7Bu itirazı reddetmek için tıkla"
+    reviewed: "&7Zaten İncelendi"
+    reviewed-by: "&7İnceleyen: &f{reviewer}"
+    back: "&c&lGeri"
+    back-lore: "&7İtiraz listesine dön"
 
 misc:
   permanent: "Kalıcı"
