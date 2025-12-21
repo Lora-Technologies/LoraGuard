@@ -270,6 +270,25 @@ nefret, şiddet, cinsel, kendine zarar, taciz, küfür, spam, dolandırıcılık
 
 ---
 
+## 📸 Screenshots / Ekran Görüntüleri
+
+### GUI Panel
+| Control Panel | Player Management | Appeal Management |
+|:-------------:|:-----------------:|:-----------------:|
+| ![Control Panel](Images/gui-control-panel.png) | ![Player Management](Images/gui-player-management.png) | ![Appeal Management](Images/gui-appeal-management.png) |
+
+### Chat Moderation / Sohbet Moderasyonu
+| Violation Detected | Message Flagged | Violation History |
+|:------------------:|:---------------:|:-----------------:|
+| ![Violation](Images/chat-violation-detected.png) | ![Flagged](Images/chat-message-flagged.png) | ![History](Images/chat-violation-history.png) |
+
+### Commands & Statistics / Komutlar ve İstatistikler
+| Commands Help | Statistics |
+|:-------------:|:----------:|
+| ![Commands](Images/chat-commands-help.png) | ![Statistics](Images/chat-statistics.png) |
+
+---
+
 ## Building / Derleme
 
 ```bash
