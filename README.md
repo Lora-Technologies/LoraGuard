@@ -272,10 +272,19 @@ nefret, şiddet, cinsel, kendine zarar, taciz, küfür, spam, dolandırıcılık
 
 ## 📸 Screenshots / Ekran Görüntüleri
 
-### GUI Panel
-| Control Panel | Player Management | Appeal Management |
-|:-------------:|:-----------------:|:-----------------:|
-| ![Control Panel](Images/gui-control-panel.png) | ![Player Management](Images/gui-player-management.png) | ![Appeal Management](Images/gui-appeal-management.png) |
+### GUI Panel / Arayüz Paneli
+| Control Panel | Player Management | Appeal Management | Violation Logs |
+|:-------------:|:-----------------:|:-----------------:|:--------------:|
+| ![Control Panel](Images/gui-control-panel.png) | ![Player Management](Images/gui-player-management.png) | ![Appeal Management](Images/gui-appeal-management.png) | ![Violation Logs](Images/gui-violation-logs.png) |
+
+### GUI Tooltips / Arayüz İpuçları
+| Toggle Moderation | Statistics | API Status | Player Management |
+|:-----------------:|:----------:|:----------:|:-----------------:|
+| ![Toggle](Images/gui-toggle-moderation.png) | ![Stats](Images/gui-statistics-tooltip.png) | ![API](Images/gui-api-status.png) | ![Player](Images/gui-player-management-tooltip.png) |
+
+| Violation Logs | Pending Appeals | Player Selected |
+|:--------------:|:---------------:|:---------------:|
+| ![Logs](Images/gui-violation-logs-tooltip.png) | ![Appeals](Images/gui-pending-appeals-tooltip.png) | ![Selected](Images/gui-player-selected.png) |
 
 ### Chat Moderation / Sohbet Moderasyonu
 | Violation Detected | Message Flagged | Violation History |
@@ -283,9 +292,9 @@ nefret, şiddet, cinsel, kendine zarar, taciz, küfür, spam, dolandırıcılık
 | ![Violation](Images/chat-violation-detected.png) | ![Flagged](Images/chat-message-flagged.png) | ![History](Images/chat-violation-history.png) |
 
 ### Commands & Statistics / Komutlar ve İstatistikler
-| Commands Help | Statistics |
-|:-------------:|:----------:|
-| ![Commands](Images/chat-commands-help.png) | ![Statistics](Images/chat-statistics.png) |
+| Commands Help | Statistics | Whitelist Added |
+|:-------------:|:----------:|:---------------:|
+| ![Commands](Images/chat-commands-help.png) | ![Statistics](Images/chat-statistics.png) | ![Whitelist](Images/chat-whitelist-added.png) |
 
 ---
 
