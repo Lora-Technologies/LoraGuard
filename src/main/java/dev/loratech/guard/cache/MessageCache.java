@@ -33,7 +33,13 @@ public class MessageCache {
         if (cache == null) {
             return null;
         }
-        return cache.getIfPresent(normalize(message));
+        CachedResult result = cache.getIfPresent(normalize(message));
+        if (result != null) {
+            plugin.getTelemetryManager().recordCacheHit();
+        } else {
+            plugin.getTelemetryManager().recordCacheMiss();
+        }
+        return result;
     }
 
     public void put(String message, ModerationResponse.Result result) {

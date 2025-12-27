@@ -3,6 +3,7 @@ package dev.loratech.guard.listener;
 import dev.loratech.guard.LoraGuard;
 import dev.loratech.guard.api.ModerationResponse;
 import dev.loratech.guard.util.TextUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -14,13 +15,11 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 public class InteractionListener implements Listener {
 
     private final LoraGuard plugin;
-    private static final long API_TIMEOUT_MS = 2000;
 
     public InteractionListener(LoraGuard plugin) {
         this.plugin = plugin;
@@ -58,10 +57,7 @@ public class InteractionListener implements Listener {
             }
         }
 
-        checkWithApi(player, text, "sign", () -> {
-            event.setCancelled(true);
-            player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.sign-blocked"));
-        });
+        checkWithApiAsync(player, text, "sign");
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
@@ -99,10 +95,7 @@ public class InteractionListener implements Listener {
             }
         }
 
-        checkWithApi(player, TextUtil.truncate(text, 500), "book", () -> {
-            event.setCancelled(true);
-            player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.book-blocked"));
-        });
+        checkWithApiAsync(player, TextUtil.truncate(text, 500), "book");
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -132,11 +125,11 @@ public class InteractionListener implements Listener {
         }
     }
 
-    private void checkWithApi(Player player, String text, String source, Runnable onBlock) {
-        try {
-            CompletableFuture<ModerationResponse> future = plugin.getApiClient().moderate(text);
-            ModerationResponse response = future.get(API_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-
+    private void checkWithApiAsync(Player player, String text, String source) {
+        UUID playerUuid = player.getUniqueId();
+        String playerName = player.getName();
+        
+        plugin.getApiClient().moderate(text).thenAcceptAsync(response -> {
             if (response == null || response.getResults() == null || response.getResults().isEmpty()) {
                 return;
             }
@@ -150,19 +143,25 @@ public class InteractionListener implements Listener {
                 boolean shouldBlock = flaggedCategories.stream().anyMatch(enabledCategories::contains);
 
                 if (shouldBlock) {
-                    onBlock.run();
-                    plugin.getPunishmentManager().handleViolation(
-                        player,
-                        result.getHighestCategory(),
-                        result.getHighestScore(),
-                        text
-                    );
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        Player onlinePlayer = Bukkit.getPlayer(playerUuid);
+                        if (onlinePlayer != null && onlinePlayer.isOnline()) {
+                            onlinePlayer.sendMessage(plugin.getLanguageManager().getPrefixed("moderation." + source + "-blocked"));
+                            plugin.getPunishmentManager().handleViolation(
+                                onlinePlayer,
+                                result.getHighestCategory(),
+                                result.getHighestScore(),
+                                text
+                            );
+                        }
+                    });
                 }
             }
-        } catch (Exception e) {
+        }).exceptionally(e -> {
             if (plugin.getConfigManager().isDebug()) {
                 plugin.getLogger().warning("API check error for " + source + ": " + e.getMessage());
             }
-        }
+            return null;
+        });
     }
 }

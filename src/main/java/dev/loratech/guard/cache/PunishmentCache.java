@@ -89,4 +89,8 @@ public class PunishmentCache {
     public void clear() {
         activeMutes.clear();
     }
+
+    public int getActiveMuteCount() {
+        return activeMutes.size();
+    }
 }

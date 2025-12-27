@@ -130,6 +130,30 @@ punishments:
   # How often to check for decay (in minutes)
   # Ne sıklıkla kontrol edilecek (dakika cinsinden)
   violation-decay-check-minutes: 60
+  
+  # Warning decay settings
+  # Uyarı azalma ayarları
+  warning-decay:
+    enabled: true
+    hours: 168
+    amount: 1
+    check-minutes: 60
+  
+  # Message passthrough - send message but still apply punishment
+  # Mesaj geçişi - mesajı gönder ama yine de ceza uygula
+  passthrough-mode: false
+  
+  # External punishment system integration
+  # Harici ceza sistemi entegrasyonu
+  external-commands:
+    enabled: false
+    # Use custom commands instead of built-in punishments
+    # Yerleşik cezalar yerine özel komutlar kullan
+    mute: "lp user {player} permission settemp loraguard.muted true {duration}"
+    unmute: "lp user {player} permission unset loraguard.muted"
+    ban: "ban {player} {duration} {reason}"
+    unban: "unban {player}"
+    kick: "kick {player} {reason}"
 
 categories:
   # Enable or disable specific detection categories
@@ -154,6 +178,30 @@ categories:
     - inappropriate_username
     - griefing
     - irl_trading
+  
+  # Category display names (for translations)
+  # Kategori görüntüleme adları (çeviriler için)
+  display-names:
+    hate: "Nefret Söylemi"
+    violence: "Şiddet"
+    sexual: "Cinsel İçerik"
+    self_harm: "Kendine Zarar"
+    harassment: "Taciz"
+    profanity: "Küfür"
+    spam: "Spam"
+    scam: "Dolandırıcılık"
+    toxicity: "Toksik Davranış"
+    bullying: "Zorbalık"
+    cheating: "Hile"
+    doxxing: "Kişisel Bilgi Paylaşımı"
+    advertising: "Reklam"
+    threats: "Tehdit"
+    discrimination: "Ayrımcılık"
+    illegal: "Yasadışı İçerik"
+    inappropriate_username: "Uygunsuz Kullanıcı Adı"
+    griefing: "Griefing"
+    irl_trading: "Gerçek Para Ticareti"
+    blacklist: "Kara Liste"
 
 blacklist:
   # Local blacklist system
@@ -313,25 +361,41 @@ slowmode:
 staffchat:
   permission: "loraguard.staffchat"
 
-# Warning decay settings
-# Uyarı azalma ayarları
-punishments:
-  warning-decay:
-    enabled: true
-    # Hours before warnings start decaying
-    # Uyarıların azalmaya başlaması için gereken saat
-    hours: 168
-    # Amount of points to decay
-    # Azaltılacak puan miktarı
-    amount: 1
-    # Check interval in minutes
-    # Kontrol aralığı (dakika)
-    check-minutes: 60
 
 # bStats metrics
 # bStats istatistikleri
 metrics:
   enabled: true
+
+# Telemetry settings - Send anonymous error/performance data to Lora Technologies
+# Telemetri ayarları - Anonim hata/performans verilerini Lora Technologies'e gönder
+telemetry:
+  # Enable or disable telemetry
+  # Telemetriyi etkinleştir veya devre dışı bırak
+  enabled: true
+  
+  # How often to send telemetry data (in minutes)
+  # Telemetri verilerinin gönderilme sıklığı (dakika)
+  send-interval-minutes: 10
+  
+  # Performance threshold - operations slower than this will be reported (ms)
+  # Performans eşiği - bundan yavaş işlemler raporlanır (ms)
+  slow-threshold-ms: 1000
+  
+  # What data to collect
+  # Hangi verilerin toplanacağı
+  collect:
+    # Error logs and exceptions
+    # Hata logları ve istisnalar
+    errors: true
+    
+    # Performance metrics (API response times, etc.)
+    # Performans metrikleri (API yanıt süreleri, vb.)
+    performance: true
+    
+    # Usage statistics (violation counts, feature usage)
+    # Kullanım istatistikleri (ihlal sayıları, özellik kullanımı)
+    usage-stats: true
 
 # Default language (en, tr, etc.)
 # Varsayılan dil (en, tr, vb.)

@@ -71,6 +71,9 @@ public class DatabaseManager {
             plugin.getLogger().info("Database connection established using " + (isMySQL() ? "MySQL/MariaDB" : "SQLite"));
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to establish database connection", e);
+            if (plugin.getTelemetryManager() != null) {
+                plugin.getTelemetryManager().getErrorCollector().captureException(e, "DatabaseManager.connect");
+            }
         }
     }
 
@@ -123,9 +126,24 @@ public class DatabaseManager {
                 "punishment_id INTEGER NOT NULL, " +
                 "punishment_type VARCHAR(16) NOT NULL, " +
                 "reason TEXT NOT NULL, " +
+                "original_message TEXT, " +
                 "status VARCHAR(16) DEFAULT 'pending', " +
                 "reviewer_name VARCHAR(16), " +
                 "review_note TEXT, " +
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                "reviewed_at TIMESTAMP)";
+
+        String reportsTable = "CREATE TABLE IF NOT EXISTS reports (" +
+                "id INTEGER PRIMARY KEY " + autoIncrement + ", " +
+                "reporter_uuid VARCHAR(36) NOT NULL, " +
+                "reporter_name VARCHAR(16) NOT NULL, " +
+                "reported_uuid VARCHAR(36) NOT NULL, " +
+                "reported_name VARCHAR(16) NOT NULL, " +
+                "reason TEXT NOT NULL, " +
+                "reported_message TEXT, " +
+                "status VARCHAR(16) DEFAULT 'pending', " +
+                "reviewer_name VARCHAR(16), " +
+                "action_taken VARCHAR(32), " +
                 "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                 "reviewed_at TIMESTAMP)";
 
@@ -135,6 +153,7 @@ public class DatabaseManager {
             stmt.execute(punishmentsTable);
             stmt.execute(playerDataTable);
             stmt.execute(appealsTable);
+            stmt.execute(reportsTable);
             
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_violations_uuid ON violations(uuid)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_violations_timestamp ON violations(timestamp)");
@@ -142,8 +161,24 @@ public class DatabaseManager {
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_punishments_active_type ON punishments(active, type)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_appeals_uuid ON appeals(uuid)");
             stmt.execute("CREATE INDEX IF NOT EXISTS idx_appeals_status ON appeals(status)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status)");
+            stmt.execute("CREATE INDEX IF NOT EXISTS idx_reports_reported ON reports(reported_uuid)");
+            
+            try {
+                stmt.execute("ALTER TABLE appeals ADD COLUMN original_message TEXT");
+            } catch (SQLException ignored) {}
+            try {
+                stmt.execute("ALTER TABLE punishments ADD COLUMN original_message TEXT");
+            } catch (SQLException ignored) {}
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to create database tables", e);
+            captureDbError(e, "createTables");
+        }
+    }
+
+    private void captureDbError(SQLException e, String context) {
+        if (plugin.getTelemetryManager() != null) {
+            plugin.getTelemetryManager().getErrorCollector().captureException(e, "DatabaseManager." + context);
         }
     }
 
@@ -160,6 +195,7 @@ public class DatabaseManager {
             stmt.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to log violation", e);
+            captureDbError(e, "logViolation");
         }
     }
 
@@ -352,6 +388,7 @@ public class DatabaseManager {
             }
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to get active mutes", e);
+            captureDbError(e, "getActiveMutes");
         }
         return mutes;
     }
@@ -662,6 +699,247 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to decay warnings", e);
             return 0;
+        }
+    }
+
+    public int createReport(UUID reporterUuid, String reporterName, UUID reportedUuid, 
+                            String reportedName, String reason, String reportedMessage) {
+        String sql = "INSERT INTO reports (reporter_uuid, reporter_name, reported_uuid, reported_name, reason, reported_message) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, reporterUuid.toString());
+            stmt.setString(2, reporterName);
+            stmt.setString(3, reportedUuid.toString());
+            stmt.setString(4, reportedName);
+            stmt.setString(5, reason);
+            stmt.setString(6, reportedMessage);
+            stmt.executeUpdate();
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to create report", e);
+        }
+        return -1;
+    }
+
+    public List<Report> getPendingReports() {
+        List<Report> reports = new ArrayList<>();
+        String sql = "SELECT * FROM reports WHERE status = 'pending' ORDER BY created_at ASC";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                reports.add(mapReport(rs));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get pending reports", e);
+        }
+        return reports;
+    }
+
+    public List<Report> getAllReports(int limit) {
+        List<Report> reports = new ArrayList<>();
+        String sql = "SELECT * FROM reports ORDER BY created_at DESC LIMIT ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, limit);
+            ResultSet rs = stmt.executeQuery();
+            while (rs.next()) {
+                reports.add(mapReport(rs));
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get all reports", e);
+        }
+        return reports;
+    }
+
+    public Report getReport(int reportId) {
+        String sql = "SELECT * FROM reports WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, reportId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return mapReport(rs);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get report", e);
+        }
+        return null;
+    }
+
+    public int getPendingReportCount() {
+        String sql = "SELECT COUNT(*) as count FROM reports WHERE status = 'pending'";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get pending report count", e);
+        }
+        return 0;
+    }
+
+    public boolean updateReportStatus(int reportId, String status, String reviewerName, String actionTaken) {
+        String sql = "UPDATE reports SET status = ?, reviewer_name = ?, action_taken = ?, reviewed_at = " + 
+                     (isMySQL() ? "NOW()" : "datetime('now')") + " WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, status);
+            stmt.setString(2, reviewerName);
+            stmt.setString(3, actionTaken);
+            stmt.setInt(4, reportId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to update report status", e);
+        }
+        return false;
+    }
+
+    private Report mapReport(ResultSet rs) throws SQLException {
+        return new Report(
+            rs.getInt("id"),
+            UUID.fromString(rs.getString("reporter_uuid")),
+            rs.getString("reporter_name"),
+            UUID.fromString(rs.getString("reported_uuid")),
+            rs.getString("reported_name"),
+            rs.getString("reason"),
+            rs.getString("reported_message"),
+            rs.getString("status"),
+            rs.getString("reviewer_name"),
+            rs.getString("action_taken"),
+            rs.getTimestamp("created_at"),
+            rs.getTimestamp("reviewed_at")
+        );
+    }
+
+    public void addPunishmentWithMessage(UUID uuid, String playerName, String type, String reason, int duration, String originalMessage) {
+        String sql = "INSERT INTO punishments (uuid, player_name, type, reason, duration, original_message) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.setString(2, playerName);
+            stmt.setString(3, type);
+            stmt.setString(4, reason);
+            stmt.setInt(5, duration);
+            stmt.setString(6, originalMessage);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to add punishment with message", e);
+        }
+    }
+
+    public String getPunishmentOriginalMessage(int punishmentId) {
+        String sql = "SELECT original_message FROM punishments WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, punishmentId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("original_message");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get punishment original message", e);
+        }
+        return null;
+    }
+
+    public int createAppealWithMessage(UUID playerUuid, String playerName, int punishmentId, 
+                                       String punishmentType, String reason, String originalMessage) {
+        String sql = "INSERT INTO appeals (uuid, player_name, punishment_id, punishment_type, reason, original_message) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, playerUuid.toString());
+            stmt.setString(2, playerName);
+            stmt.setInt(3, punishmentId);
+            stmt.setString(4, punishmentType);
+            stmt.setString(5, reason);
+            stmt.setString(6, originalMessage);
+            stmt.executeUpdate();
+            ResultSet rs = stmt.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to create appeal with message", e);
+        }
+        return -1;
+    }
+
+    public String getAppealOriginalMessage(int appealId) {
+        String sql = "SELECT original_message FROM appeals WHERE id = ?";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, appealId);
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("original_message");
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get appeal original message", e);
+        }
+        return null;
+    }
+
+    public void removeBan(UUID uuid) {
+        String sql = "UPDATE punishments SET active = FALSE WHERE uuid = ? AND type = 'ban' AND active = TRUE";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to remove ban", e);
+        }
+    }
+
+    public boolean hasActiveBan(UUID uuid) {
+        String sql = "SELECT COUNT(*) as count FROM punishments WHERE uuid = ? AND type = 'ban' AND active = TRUE";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("count") > 0;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to check active ban", e);
+        }
+        return false;
+    }
+
+    public static class Report {
+        public final int id;
+        public final UUID reporterUuid;
+        public final String reporterName;
+        public final UUID reportedUuid;
+        public final String reportedName;
+        public final String reason;
+        public final String reportedMessage;
+        public final String status;
+        public final String reviewerName;
+        public final String actionTaken;
+        public final Timestamp createdAt;
+        public final Timestamp reviewedAt;
+
+        public Report(int id, UUID reporterUuid, String reporterName, UUID reportedUuid, String reportedName,
+                     String reason, String reportedMessage, String status, String reviewerName, 
+                     String actionTaken, Timestamp createdAt, Timestamp reviewedAt) {
+            this.id = id;
+            this.reporterUuid = reporterUuid;
+            this.reporterName = reporterName;
+            this.reportedUuid = reportedUuid;
+            this.reportedName = reportedName;
+            this.reason = reason;
+            this.reportedMessage = reportedMessage;
+            this.status = status;
+            this.reviewerName = reviewerName;
+            this.actionTaken = actionTaken;
+            this.createdAt = createdAt;
+            this.reviewedAt = reviewedAt;
         }
     }
 

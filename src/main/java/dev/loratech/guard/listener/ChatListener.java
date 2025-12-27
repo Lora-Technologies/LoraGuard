@@ -101,9 +101,15 @@ public class ChatListener implements Listener {
 
         final String finalMessage = message;
         
+        plugin.getTelemetryManager().recordMessageProcessed();
+        
         try {
+            long startTime = System.currentTimeMillis();
             CompletableFuture<ModerationResponse> future = plugin.getApiClient().moderate(finalMessage);
             ModerationResponse response = future.get(API_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            long responseTime = System.currentTimeMillis() - startTime;
+            
+            plugin.getTelemetryManager().recordApiCall(response != null, responseTime);
             
             if (response == null || response.getResults() == null || response.getResults().isEmpty()) {
                 return;
@@ -127,17 +133,23 @@ public class ChatListener implements Listener {
                 boolean shouldBlock = flaggedCategories.stream().anyMatch(enabledCategories::contains);
 
                 if (shouldBlock) {
-                    event.setCancelled(true);
-                    player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.blocked"));
+                    boolean passthrough = plugin.getConfigManager().isPassthroughModeEnabled();
+                    if (!passthrough) {
+                        event.setCancelled(true);
+                        player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.blocked"));
+                    }
                     plugin.getPunishmentManager().handleViolation(
                         player, 
                         result.getHighestCategory(), 
                         result.getHighestScore(), 
                         finalMessage
                     );
+                    plugin.getTelemetryManager().recordViolation(result.getHighestCategory());
                 }
             }
         } catch (Exception e) {
+            plugin.getTelemetryManager().recordApiCall(false, API_TIMEOUT_MS);
+            plugin.getTelemetryManager().getErrorCollector().captureException(e, "ChatListener.onChat");
             if (plugin.getConfigManager().isDebug()) {
                 plugin.getLogger().warning("API check timeout/error for message: " + e.getMessage());
             }

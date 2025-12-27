@@ -25,8 +25,8 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
     private final LoraGuard plugin;
     private static final List<String> SUBCOMMANDS = Arrays.asList(
         "reload", "toggle", "stats", "history", "clear", "whitelist", 
-        "mute", "unmute", "test", "setlang", "gui", "help",
-        "bulkmute", "bulkunmute", "export", "appeal", "slowmode"
+        "mute", "unmute", "ban", "unban", "kick", "test", "setlang", "gui", "help",
+        "bulkmute", "bulkunmute", "export", "appeal", "slowmode", "reports"
     );
 
     public LoraCommand(LoraGuard plugin) {
@@ -56,6 +56,10 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             case "whitelist" -> handleWhitelist(sender, args);
             case "mute" -> handleMute(sender, args);
             case "unmute" -> handleUnmute(sender, args);
+            case "ban" -> handleBan(sender, args);
+            case "unban" -> handleUnban(sender, args);
+            case "kick" -> handleKick(sender, args);
+            case "reports" -> handleReports(sender, args);
             case "test" -> handleTest(sender, args);
             case "setlang" -> handleSetLang(sender, args);
             case "gui" -> handleGUI(sender);
@@ -237,7 +241,7 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        Player target = Bukkit.getPlayer(args[1]);
+        OfflinePlayer target = resolvePlayer(args[1]);
         if (target == null) {
             sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.player-not-found"));
             return;
@@ -249,8 +253,191 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
         }
 
         plugin.getPunishmentManager().unmute(target.getUniqueId());
+        String targetName = target.getName() != null ? target.getName() : args[1];
         sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.unmute.success",
+            "player", targetName));
+    }
+
+    private void handleBan(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                "usage", "/lg ban <player> [duration] [reason]"));
+            return;
+        }
+
+        Player target = Bukkit.getPlayer(args[1]);
+        if (target == null) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.player-not-found"));
+            return;
+        }
+
+        String duration = args.length > 2 ? args[2] : "permanent";
+        String reason = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) 
+            : plugin.getLanguageManager().get("commands.ban.default-reason");
+        
+        int minutes = parseDuration(duration);
+        plugin.getPunishmentManager().ban(target, reason, minutes);
+        
+        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.ban.success",
+            "player", target.getName(), "duration", duration));
+    }
+
+    private void handleUnban(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                "usage", "/lg unban <player>"));
+            return;
+        }
+
+        String playerName = args[1];
+        OfflinePlayer target = resolvePlayer(playerName);
+        
+        if (target == null) {
+            @SuppressWarnings("deprecation")
+            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
+            target = offlinePlayer;
+        }
+
+        boolean isBanned = Bukkit.getBanList(org.bukkit.BanList.Type.NAME).isBanned(playerName);
+        if (!isBanned && !plugin.getDatabaseManager().hasActiveBan(target.getUniqueId())) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.unban.not-banned"));
+            return;
+        }
+
+        plugin.getPunishmentManager().unban(target.getUniqueId(), playerName);
+        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.unban.success",
+            "player", playerName));
+    }
+
+    private void handleKick(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                "usage", "/lg kick <player> [reason]"));
+            return;
+        }
+
+        Player target = Bukkit.getPlayer(args[1]);
+        if (target == null) {
+            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.player-not-found"));
+            return;
+        }
+
+        String reason = args.length > 2 ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) 
+            : plugin.getLanguageManager().get("commands.kick.default-reason");
+        
+        plugin.getPunishmentManager().kick(target, reason);
+        sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.kick.success",
             "player", target.getName()));
+    }
+
+    private void handleReports(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                int count = plugin.getDatabaseManager().getPendingReportCount();
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    sender.sendMessage(plugin.getLanguageManager().get("commands.reports.header", "count", String.valueOf(count)));
+                    sender.sendMessage(plugin.getLanguageManager().get("commands.reports.list-usage"));
+                    sender.sendMessage(plugin.getLanguageManager().get("commands.reports.handle-usage"));
+                });
+            });
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+        switch (action) {
+            case "list" -> {
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    var reports = plugin.getDatabaseManager().getPendingReports();
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (reports.isEmpty()) {
+                            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.empty"));
+                            return;
+                        }
+                        sender.sendMessage(plugin.getLanguageManager().get("commands.reports.list-header", "count", String.valueOf(reports.size())));
+                        for (var report : reports) {
+                            sender.sendMessage(plugin.getLanguageManager().get("commands.reports.list-entry",
+                                "id", String.valueOf(report.id),
+                                "reporter", report.reporterName,
+                                "reported", report.reportedName,
+                                "reason", report.reason.length() > 20 ? report.reason.substring(0, 20) + "..." : report.reason));
+                        }
+                    });
+                });
+            }
+            case "handle", "view" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                        "usage", "/lg reports handle <id>"));
+                    return;
+                }
+                try {
+                    int reportId = Integer.parseInt(args[2]);
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        var report = plugin.getDatabaseManager().getReport(reportId);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (report == null) {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.not-found"));
+                                return;
+                            }
+                            sender.sendMessage(plugin.getLanguageManager().get("commands.reports.detail-header", "id", String.valueOf(report.id)));
+                            sender.sendMessage(plugin.getLanguageManager().get("commands.reports.detail-reporter", "reporter", report.reporterName));
+                            sender.sendMessage(plugin.getLanguageManager().get("commands.reports.detail-reported", "reported", report.reportedName));
+                            sender.sendMessage(plugin.getLanguageManager().get("commands.reports.detail-reason", "reason", report.reason));
+                            if (report.reportedMessage != null) {
+                                sender.sendMessage(plugin.getLanguageManager().get("commands.reports.detail-message", "message", report.reportedMessage));
+                            }
+                        });
+                    });
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.invalid-id"));
+                }
+            }
+            case "accept", "approve" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                        "usage", "/lg reports accept <id> [action]"));
+                    return;
+                }
+                try {
+                    int reportId = Integer.parseInt(args[2]);
+                    String actionTaken = args.length > 3 ? args[3] : "warning";
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        boolean success = plugin.getDatabaseManager().updateReportStatus(reportId, "accepted", sender.getName(), actionTaken);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (success) {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.accepted", "id", String.valueOf(reportId)));
+                            } else {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.not-found"));
+                            }
+                        });
+                    });
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.invalid-id"));
+                }
+            }
+            case "deny", "reject" -> {
+                if (args.length < 3) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
+                        "usage", "/lg reports deny <id>"));
+                    return;
+                }
+                try {
+                    int reportId = Integer.parseInt(args[2]);
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        boolean success = plugin.getDatabaseManager().updateReportStatus(reportId, "denied", sender.getName(), null);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (success) {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.denied", "id", String.valueOf(reportId)));
+                            } else {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.not-found"));
+                            }
+                        });
+                    });
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.reports.invalid-id"));
+                }
+            }
+        }
     }
 
     private void handleTest(CommandSender sender, String[] args) {
@@ -442,19 +629,23 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
 
         switch (action) {
             case "list" -> {
-                List<Appeal> appeals = plugin.getAppealManager().getPendingAppeals();
-                if (appeals.isEmpty()) {
-                    sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.appeal.list-empty"));
-                    return;
-                }
-                sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.list-header",
-                    "count", String.valueOf(appeals.size())));
-                for (Appeal appeal : appeals) {
-                    sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.list-entry",
-                        "id", String.valueOf(appeal.getId()),
-                        "player", appeal.getPlayerName(),
-                        "type", appeal.getPunishmentType()));
-                }
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    List<Appeal> appeals = plugin.getAppealManager().getPendingAppeals();
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (appeals.isEmpty()) {
+                            sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.appeal.list-empty"));
+                            return;
+                        }
+                        sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.list-header",
+                            "count", String.valueOf(appeals.size())));
+                        for (Appeal appeal : appeals) {
+                            sender.sendMessage(plugin.getLanguageManager().get("commands.appeal.list-entry",
+                                "id", String.valueOf(appeal.getId()),
+                                "player", appeal.getPlayerName(),
+                                "type", appeal.getPunishmentType()));
+                        }
+                    });
+                });
             }
             case "approve" -> {
                 if (args.length < 3) {
@@ -465,11 +656,16 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
                 try {
                     int id = Integer.parseInt(args[2]);
                     String note = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) : null;
-                    if (plugin.getAppealManager().approveAppeal(id, sender.getName(), note)) {
-                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.approved-staff", "player", "ID#" + id));
-                    } else {
-                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
-                    }
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        boolean success = plugin.getAppealManager().approveAppeal(id, sender.getName(), note);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (success) {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.approved-staff", "player", "ID#" + id));
+                            } else {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
+                            }
+                        });
+                    });
                 } catch (NumberFormatException e) {
                     sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
                 }
@@ -483,11 +679,16 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
                 try {
                     int id = Integer.parseInt(args[2]);
                     String note = args.length > 3 ? String.join(" ", Arrays.copyOfRange(args, 3, args.length)) : null;
-                    if (plugin.getAppealManager().denyAppeal(id, sender.getName(), note)) {
-                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.denied-staff", "player", "ID#" + id));
-                    } else {
-                        sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
-                    }
+                    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                        boolean success = plugin.getAppealManager().denyAppeal(id, sender.getName(), note);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (success) {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.denied-staff", "player", "ID#" + id));
+                            } else {
+                                sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
+                            }
+                        });
+                    });
                 } catch (NumberFormatException e) {
                     sender.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.not-found"));
                 }
@@ -557,6 +758,10 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.whitelist"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.mute"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.unmute"));
+        sender.sendMessage(plugin.getLanguageManager().get("commands.help.ban"));
+        sender.sendMessage(plugin.getLanguageManager().get("commands.help.unban"));
+        sender.sendMessage(plugin.getLanguageManager().get("commands.help.kick"));
+        sender.sendMessage(plugin.getLanguageManager().get("commands.help.reports"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.test"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.setlang"));
         sender.sendMessage(plugin.getLanguageManager().get("commands.help.gui"));
@@ -601,11 +806,15 @@ public class LoraCommand implements CommandExecutor, TabCompleter {
 
         if (args.length == 2) {
             String sub = args[0].toLowerCase();
-            if (sub.equals("history") || sub.equals("clear") || sub.equals("mute") || sub.equals("unmute")) {
+            if (sub.equals("history") || sub.equals("clear") || sub.equals("mute") || sub.equals("unmute") 
+                || sub.equals("ban") || sub.equals("unban") || sub.equals("kick")) {
                 return Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
                     .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase()))
                     .collect(Collectors.toList());
+            }
+            if (sub.equals("reports")) {
+                return Arrays.asList("list", "handle", "accept", "deny");
             }
             if (sub.equals("whitelist")) {
                 return Arrays.asList("add", "remove");

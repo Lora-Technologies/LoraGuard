@@ -35,6 +35,7 @@ public class AppealManager {
         
         if (appealId > 0) {
             plugin.getCooldownManager().setAppealCooldown(playerUuid);
+            plugin.getTelemetryManager().recordAppealCreated();
             notifyStaff(playerName, punishmentType, appealId);
             return true;
         }
@@ -52,6 +53,7 @@ public class AppealManager {
             appealId, Appeal.AppealStatus.APPROVED, reviewerName, note);
 
         if (updated) {
+            plugin.getTelemetryManager().recordAppealAccepted();
             String punishmentType = appeal.getPunishmentType();
             if ("mute".equalsIgnoreCase(punishmentType)) {
                 plugin.getPunishmentManager().unmute(appeal.getPlayerUuid());
@@ -85,6 +87,7 @@ public class AppealManager {
             appealId, Appeal.AppealStatus.DENIED, reviewerName, note);
 
         if (updated) {
+            plugin.getTelemetryManager().recordAppealRejected();
             Player player = Bukkit.getPlayer(appeal.getPlayerUuid());
             if (player != null) {
                 player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.denied",
@@ -112,6 +115,10 @@ public class AppealManager {
     }
 
     private void notifyStaff(String playerName, String type, int appealId) {
+        notifyStaffNewAppeal(playerName, type, appealId);
+    }
+
+    public void notifyStaffNewAppeal(String playerName, String type, int appealId) {
         String permission = plugin.getConfigManager().getStaffPermission();
         String message = plugin.getLanguageManager().getPrefixed("appeal.staff-notify",
             "player", playerName, "type", type, "id", String.valueOf(appealId));

@@ -25,6 +25,7 @@ import dev.loratech.guard.listener.StaffChatListener;
 import dev.loratech.guard.manager.CooldownManager;
 import dev.loratech.guard.manager.SlowmodeManager;
 import dev.loratech.guard.metrics.MetricsManager;
+import dev.loratech.guard.telemetry.TelemetryManager;
 import dev.loratech.guard.punishment.PunishmentManager;
 import dev.loratech.guard.task.MuteExpiryTask;
 import dev.loratech.guard.task.ViolationDecayTask;
@@ -50,6 +51,7 @@ public class LoraGuard extends JavaPlugin {
     private ExportManager exportManager;
     private SlowmodeManager slowmodeManager;
     private MetricsManager metricsManager;
+    private TelemetryManager telemetryManager;
     private StaffChatCommand staffChatCommand;
     
     private boolean enabled = true;
@@ -74,6 +76,9 @@ public class LoraGuard extends JavaPlugin {
         slowmodeManager = new SlowmodeManager(this);
         metricsManager = new MetricsManager(this);
         metricsManager.start();
+        
+        telemetryManager = new TelemetryManager(this);
+        telemetryManager.start();
         
         if (getServer().getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new PlaceholderHook(this).register();
@@ -120,6 +125,9 @@ public class LoraGuard extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (telemetryManager != null) {
+            telemetryManager.stop();
+        }
         if (apiClient != null) {
             apiClient.shutdown();
         }
@@ -191,6 +199,10 @@ public class LoraGuard extends JavaPlugin {
 
     public StaffChatCommand getStaffChatCommand() {
         return staffChatCommand;
+    }
+
+    public TelemetryManager getTelemetryManager() {
+        return telemetryManager;
     }
 
     public boolean isModEnabled() {

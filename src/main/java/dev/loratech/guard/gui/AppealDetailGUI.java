@@ -54,10 +54,31 @@ public class AppealDetailGUI extends AbstractGUI {
             reasonLore.add("§7" + reason.substring(i, Math.min(i + chunkSize, reason.length())));
         }
 
-        inventory.setItem(22, createItem(
+        inventory.setItem(20, createItem(
             Material.WRITABLE_BOOK,
             plugin.getLanguageManager().get("gui.appeal-detail.reason-title"),
             reasonLore.toArray(new String[0])
+        ));
+
+        String originalMessage = plugin.getDatabaseManager().getAppealOriginalMessage(appeal.getId());
+        if (originalMessage == null) {
+            originalMessage = plugin.getDatabaseManager().getPunishmentOriginalMessage(appeal.getPunishmentId());
+        }
+        
+        List<String> messageLore = new ArrayList<>();
+        messageLore.add("");
+        if (originalMessage != null && !originalMessage.isEmpty()) {
+            for (int i = 0; i < originalMessage.length(); i += chunkSize) {
+                messageLore.add("§c" + originalMessage.substring(i, Math.min(i + chunkSize, originalMessage.length())));
+            }
+        } else {
+            messageLore.add(plugin.getLanguageManager().get("gui.appeal-detail.no-message"));
+        }
+
+        inventory.setItem(24, createItem(
+            Material.PAPER,
+            plugin.getLanguageManager().get("gui.appeal-detail.original-message-title"),
+            messageLore.toArray(new String[0])
         ));
 
         if (appeal.getStatus() == Appeal.AppealStatus.PENDING) {

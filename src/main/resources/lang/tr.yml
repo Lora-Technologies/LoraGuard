@@ -15,15 +15,20 @@ punishments:
     broadcast: "&e{player} &7uyarı aldı. &8({count}. uyarı)"
   mute:
     message: "&cSusturuldun! &7Süre: &f{duration} &7Sebep: &f{reason}"
-    broadcast: "&c{player} &7susturuldu. &8(Süre: {duration})"
+    broadcast: "&c{player} &7susturuldu. &8(Süre: {duration}) &7Sebep: &f{reason}"
     cannot-speak: "&cSusturulmuş durumdasın! &7Kalan süre: &f{remaining}"
     expired: "&aSusturma süreniz doldu! Artık konuşabilirsiniz."
+    still-muted: "&cHala susturulmuş durumdasın! &7Kalan süre: &f{remaining}"
   kick:
     message: "&cSunucudan atıldın!\n\n&7Sebep: &f{reason}\n&7Lütfen kurallara uy."
-    broadcast: "&c{player} &7sunucudan atıldı."
+    broadcast: "&c{player} &7sunucudan atıldı. &7Sebep: &f{reason}"
   ban:
-    message: "&4Sunucudan yasaklandın!\n\n&7Sebep: &f{reason}\n&7Süre: &f{duration}\n\n&7İtiraz için: &fdiscord.gg/example"
-    broadcast: "&4{player} &7sunucudan yasaklandı. &8(Süre: {duration})"
+    message: "&4Sunucudan yasaklandın!\n\n&7Sebep: &f{reason}\n&7Süre: &f{duration}\n\n&7İtiraz için Discord sunucumuza katılın."
+    broadcast: "&4{player} &7sunucudan yasaklandı. &8(Süre: {duration}) &7Sebep: &f{reason}"
+    default-reason: "Kural ihlali"
+  unban:
+    success: "&a{player} için yasak kaldırıldı!"
+    not-banned: "&eOyuncu yasaklı değil!"
 
 filters:
   spam: "&cSpam yapmayın! Aynı mesajı tekrar tekrar göndermeyin."
@@ -73,6 +78,15 @@ commands:
   unmute:
     success: "&a{player} için susturma kaldırıldı!"
     not-muted: "&eOyuncu susturulmuş değil!"
+  ban:
+    success: "&a{player} yasaklandı! &7Süre: {duration}"
+    default-reason: "Kural ihlali"
+  unban:
+    success: "&a{player} için yasak kaldırıldı!"
+    not-banned: "&eOyuncu yasaklı değil!"
+  kick:
+    success: "&a{player} sunucudan atıldı!"
+    default-reason: "Kural ihlali"
   test:
     checking: "&7Mesaj kontrol ediliyor..."
     result-safe: "&aMesaj güvenli!"
@@ -81,6 +95,23 @@ commands:
     sent: "&aRapor başarıyla gönderildi! Yetkililer inceleyecektir."
     self: "&cKendini raporlayamazsın!"
     cooldown: "&cTekrar raporlamak için {seconds} saniye bekleyin."
+    staff-notify: "&e&lYeni Rapor! &7{reporter} &f-> &7{reported} &8(ID: {id})"
+  reports:
+    header: "&b&lRapor Sistemi &8- &7{count} bekleyen rapor"
+    list-usage: "&7/lg reports list &8- &fBekleyen raporları görüntüle"
+    handle-usage: "&7/lg reports handle <id> &8- &fRapor detayını görüntüle"
+    empty: "&7Bekleyen rapor bulunmuyor."
+    list-header: "&b&lBekleyen Raporlar ({count})"
+    list-entry: "&7#{id} &f{reporter} &8-> &f{reported} &8- &e{reason}"
+    not-found: "&cRapor bulunamadı."
+    invalid-id: "&cGeçersiz rapor ID!"
+    detail-header: "&b&lRapor #{id}"
+    detail-reporter: "&7Raporlayan: &f{reporter}"
+    detail-reported: "&7Raporlanan: &f{reported}"
+    detail-reason: "&7Sebep: &f{reason}"
+    detail-message: "&7Son Mesaj: &c{message}"
+    accepted: "&aRapor #{id} kabul edildi!"
+    denied: "&cRapor #{id} reddedildi!"
   clearchat:
     broadcast: "&aSohbet {player} tarafından temizlendi!"
   setlang:
@@ -97,8 +128,12 @@ commands:
     history: "&7/lg history <oyuncu> &8- &fOyuncu geçmişini görüntüle"
     clear: "&7/lg clear <oyuncu> &8- &fOyuncu geçmişini temizle"
     whitelist: "&7/lg whitelist <add|remove> <oyuncu> &8- &fGüvenilir listeyi yönet"
-    mute: "&7/lg mute <oyuncu> [süre] &8- &fOyuncuyu sustur"
+    mute: "&7/lg mute <oyuncu> [süre] [sebep] &8- &fOyuncuyu sustur"
     unmute: "&7/lg unmute <oyuncu> &8- &fSusturmayı kaldır"
+    ban: "&7/lg ban <oyuncu> [süre] [sebep] &8- &fOyuncuyu yasakla"
+    unban: "&7/lg unban <oyuncu> &8- &fYasağı kaldır"
+    kick: "&7/lg kick <oyuncu> [sebep] &8- &fOyuncuyu at"
+    reports: "&7/lg reports <list|handle|accept|deny> &8- &fRaporları yönet"
     test: "&7/lg test <mesaj> &8- &fMesaj test et"
     setlang: "&7/lg setlang <tr|en> &8- &fDil değiştir"
     gui: "&7/lg gui &8- &fYönetim panelini aç"
@@ -240,6 +275,7 @@ gui:
     date: "&7Tarih: &f{date}"
     reason-title: "&7Sebep:"
     click-to-review: "&eİncelemek için tıkla"
+    original-message-title: "&c&lCezaya Sebep Olan Mesaj:"
     appeal-title: "&e{player} &8(#{id})"
   appeal-detail:
     title: "&8İtiraz #{id}"
@@ -252,6 +288,8 @@ gui:
     status-approved: "Onaylandı"
     status-denied: "Reddedildi"
     reason-title: "&e&lİtiraz Sebebi"
+    original-message-title: "&c&lCezaya Sebep Olan Mesaj"
+    no-message: "&7Mesaj bulunamadı"
     approve: "&a&lİtirazı Onayla"
     approve-lore: "&7Bu itirazı onaylamak için tıkla"
     deny: "&c&lİtirazı Reddet"
@@ -272,14 +310,15 @@ appeal:
   submitted: "&aİtirazınız gönderildi!"
   not-found: "&cİtiraz bulunamadı."
   disabled: "&cİtiraz sistemi devre dışı."
-  invalid-type: "&cGeçersiz ceza türü! Kullanılabilir: mute veya ban"
+  invalid-type: "&cGeçersiz ceza türü! Kullanılabilir: mute"
+  mute-only: "&cSadece mute cezalarına itiraz edebilirsiniz."
   no-punishment: "&cİtiraz edebileceğiniz aktif bir {type} cezanız yok."
   failed: "&cİtiraz oluşturulamadı. Lütfen tekrar deneyin."
   no-pending: "&cBekleyen itirazınız bulunmuyor."
   no-appeals: "&cHiç itirazınız bulunmuyor."
   usage:
     header: "&b&lİtiraz Komutları"
-    create: "&7/appeal create <mute|ban> <sebep> &8- &fİtiraz oluştur"
+    create: "&7/appeal create <mute> <sebep> &8- &fSusturma itirazı oluştur"
     status: "&7/appeal status &8- &fBekleyen itirazını kontrol et"
     list: "&7/appeal list &8- &fTüm itirazlarını görüntüle"
   status:

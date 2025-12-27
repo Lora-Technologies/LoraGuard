@@ -351,4 +351,71 @@ public class ConfigManager {
     public int getWarningDecayCheckMinutes() {
         return config.getInt("punishments.warning-decay.check-minutes", 60);
     }
+
+    public boolean isPassthroughModeEnabled() {
+        return config.getBoolean("punishments.passthrough-mode", false);
+    }
+
+    public boolean isExternalCommandsEnabled() {
+        return config.getBoolean("punishments.external-commands.enabled", false);
+    }
+
+    public String getExternalMuteCommand() {
+        return config.getString("punishments.external-commands.mute", "");
+    }
+
+    public String getExternalUnmuteCommand() {
+        return config.getString("punishments.external-commands.unmute", "");
+    }
+
+    public String getExternalBanCommand() {
+        return config.getString("punishments.external-commands.ban", "");
+    }
+
+    public String getExternalUnbanCommand() {
+        return config.getString("punishments.external-commands.unban", "");
+    }
+
+    public String getExternalKickCommand() {
+        return config.getString("punishments.external-commands.kick", "");
+    }
+
+    public String getCategoryDisplayName(String category) {
+        String displayName = config.getString("categories.display-names." + category);
+        return displayName != null ? displayName : category;
+    }
+
+    public Map<String, String> getCategoryDisplayNames() {
+        Map<String, String> names = new HashMap<>();
+        if (config.getConfigurationSection("categories.display-names") != null) {
+            for (String key : config.getConfigurationSection("categories.display-names").getKeys(false)) {
+                names.put(key, config.getString("categories.display-names." + key, key));
+            }
+        }
+        return names;
+    }
+
+    public boolean isTelemetryEnabled() {
+        return config.getBoolean("telemetry.enabled", true);
+    }
+
+    public int getTelemetrySendInterval() {
+        return config.getInt("telemetry.send-interval-minutes", 10);
+    }
+
+    public boolean isTelemetryErrorsEnabled() {
+        return config.getBoolean("telemetry.collect.errors", true);
+    }
+
+    public boolean isTelemetryPerformanceEnabled() {
+        return config.getBoolean("telemetry.collect.performance", true);
+    }
+
+    public boolean isTelemetryUsageEnabled() {
+        return config.getBoolean("telemetry.collect.usage-stats", true);
+    }
+
+    public long getTelemetrySlowThresholdMs() {
+        return config.getLong("telemetry.slow-threshold-ms", 1000);
+    }
 }

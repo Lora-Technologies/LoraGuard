@@ -58,6 +58,20 @@ public class AppealListGUI extends PaginatedGUI<Appeal> {
             lore.add("§7" + reason);
         }
         
+        String originalMessage = plugin.getDatabaseManager().getAppealOriginalMessage(appeal.getId());
+        if (originalMessage == null) {
+            originalMessage = plugin.getDatabaseManager().getPunishmentOriginalMessage(appeal.getPunishmentId());
+        }
+        if (originalMessage != null && !originalMessage.isEmpty()) {
+            lore.add("");
+            lore.add(plugin.getLanguageManager().get("gui.appeals.original-message-title"));
+            if (originalMessage.length() > 35) {
+                lore.add("§c" + originalMessage.substring(0, 35) + "...");
+            } else {
+                lore.add("§c" + originalMessage);
+            }
+        }
+        
         lore.add("");
         lore.add(plugin.getLanguageManager().get("gui.appeals.click-to-review"));
 

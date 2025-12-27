@@ -82,6 +82,15 @@ Advanced AI-powered chat moderation plugin for Minecraft servers.
 - **MySQL/SQLite**: Flexible database options
 - **bStats Metrics**: Anonymous usage statistics
 
+### 📊 Telemetry Dashboard
+- **Real-time Monitoring**: Live server stats at `x.loratech.dev`
+- **TPS & Memory Tracking**: Performance graphs over time
+- **Violation Analytics**: Category breakdown and trends
+- **Error Tracking**: Centralized error monitoring with resolution
+- **Cache Performance**: Hit rate and efficiency metrics
+- **Appeal Statistics**: Created, accepted, rejected counts
+- **Multi-server Support**: Monitor all your servers in one place
+
 ## Requirements
 
 - Java 21+
@@ -201,6 +210,15 @@ Minecraft sunucuları için gelişmiş yapay zeka destekli sohbet moderasyon ekl
 - **PlaceholderAPI**: Tam placeholder desteği
 - **MySQL/SQLite**: Esnek veritabanı seçenekleri
 - **bStats Metrikleri**: Anonim kullanım istatistikleri
+
+### 📊 Telemetri Dashboard
+- **Gerçek Zamanlı İzleme**: `x.loratech.dev` adresinde canlı sunucu istatistikleri
+- **TPS & Bellek Takibi**: Zaman içinde performans grafikleri
+- **İhlal Analitiği**: Kategori dağılımı ve trendler
+- **Hata Takibi**: Çözüm ile merkezi hata izleme
+- **Önbellek Performansı**: İsabet oranı ve verimlilik metrikleri
+- **İtiraz İstatistikleri**: Oluşturulan, kabul edilen, reddedilen sayıları
+- **Çoklu Sunucu Desteği**: Tüm sunucularınızı tek yerden izleyin
 
 ## Gereksinimler
 

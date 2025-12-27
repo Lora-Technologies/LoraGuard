@@ -32,9 +32,12 @@ public class FilterManager {
     }
 
     public FilterResult check(Player player, String message) {
+        plugin.getTelemetryManager().recordFilterCheck();
+        
         if (plugin.getConfigManager().isAntiSpamEnabled()) {
             FilterResult spamResult = checkSpam(player, message);
             if (!spamResult.isAllowed()) {
+                plugin.getTelemetryManager().recordFilterTrigger("SPAM");
                 return spamResult;
             }
         }
@@ -42,6 +45,7 @@ public class FilterManager {
         if (plugin.getConfigManager().isAntiFloodEnabled()) {
             FilterResult floodResult = checkFlood(player);
             if (!floodResult.isAllowed()) {
+                plugin.getTelemetryManager().recordFilterTrigger("FLOOD");
                 return floodResult;
             }
         }
@@ -49,6 +53,7 @@ public class FilterManager {
         if (plugin.getConfigManager().isLinkFilterEnabled()) {
             FilterResult linkResult = checkLinks(message);
             if (!linkResult.isAllowed()) {
+                plugin.getTelemetryManager().recordFilterTrigger("LINK");
                 return linkResult;
             }
         }
@@ -56,6 +61,7 @@ public class FilterManager {
         if (plugin.getConfigManager().isIpFilterEnabled()) {
             FilterResult ipResult = checkIpAddress(message);
             if (!ipResult.isAllowed()) {
+                plugin.getTelemetryManager().recordFilterTrigger("IP");
                 return ipResult;
             }
         }
@@ -63,6 +69,7 @@ public class FilterManager {
         if (plugin.getConfigManager().isCapsLockEnabled()) {
             FilterResult capsResult = checkCapsLock(message);
             if (!capsResult.isAllowed()) {
+                plugin.getTelemetryManager().recordFilterTrigger("CAPS");
                 return capsResult;
             }
         }

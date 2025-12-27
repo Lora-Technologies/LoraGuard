@@ -3,6 +3,7 @@ package dev.loratech.guard.punishment;
 import dev.loratech.guard.LoraGuard;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -30,15 +31,17 @@ public class PunishmentManager {
         int currentPoints = plugin.getDatabaseManager().getPlayerViolationPoints(player.getUniqueId());
         String punishment = determinePunishment(currentPoints);
 
+        String translatedCategory = plugin.getConfigManager().getCategoryDisplayName(category);
+
         String actionTaken = "none";
         if (punishment != null) {
             actionTaken = punishment.split(":")[0];
-            executePunishment(player, punishment, category);
+            executePunishment(player, punishment, translatedCategory, message);
         }
         
         plugin.getDatabaseManager().updateViolationAction(violationId, actionTaken);
 
-        notifyStaff(player, message, category, score);
+        notifyStaff(player, message, translatedCategory, score);
         plugin.getDiscordHook().sendViolation(player, message, category, score);
     }
 
@@ -56,6 +59,10 @@ public class PunishmentManager {
     }
 
     public void executePunishment(Player player, String punishmentString, String reason) {
+        executePunishment(player, punishmentString, reason, null);
+    }
+
+    public void executePunishment(Player player, String punishmentString, String reason, String originalMessage) {
         String[] parts = punishmentString.split(":");
         String typeStr = parts[0].toUpperCase();
         String duration = parts.length > 1 ? parts[1] : null;
@@ -64,9 +71,9 @@ public class PunishmentManager {
             PunishmentType type = PunishmentType.valueOf(typeStr);
             switch (type) {
                 case WARN -> warn(player, reason);
-                case MUTE -> mute(player, reason, parseDuration(duration));
+                case MUTE -> mute(player, reason, parseDuration(duration), originalMessage);
                 case KICK -> kick(player, reason);
-                case BAN -> ban(player, reason, parseDuration(duration));
+                case BAN -> ban(player, reason, parseDuration(duration), originalMessage);
             }
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("Unknown punishment type: " + typeStr);
@@ -74,6 +81,7 @@ public class PunishmentManager {
     }
 
     public void warn(Player player, String reason) {
+        plugin.getTelemetryManager().recordPunishment("WARN", 0);
         int count = plugin.getDatabaseManager().getPlayerViolationPoints(player.getUniqueId());
         String message = plugin.getLanguageManager().getPrefixed("punishments.warn.message", 
             "reason", reason);
@@ -87,14 +95,27 @@ public class PunishmentManager {
     }
 
     public void mute(Player player, String reason, int minutes) {
-        long expiration = -1;
-        if (minutes > 0) {
-            expiration = System.currentTimeMillis() + (minutes * 60000L);
+        mute(player, reason, minutes, null);
+    }
+
+    public void mute(Player player, String reason, int minutes, String originalMessage) {
+        plugin.getTelemetryManager().recordPunishment("MUTE", minutes);
+        if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String cmd = plugin.getConfigManager().getExternalMuteCommand()
+                .replace("{player}", player.getName())
+                .replace("{duration}", formatDurationForCommand(minutes))
+                .replace("{reason}", reason);
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
+        } else {
+            long expiration = -1;
+            if (minutes > 0) {
+                expiration = System.currentTimeMillis() + (minutes * 60000L);
+            }
+            plugin.getPunishmentCache().addMute(player.getUniqueId(), expiration);
         }
-        plugin.getPunishmentCache().addMute(player.getUniqueId(), expiration);
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            plugin.getDatabaseManager().addPunishment(player.getUniqueId(), player.getName(), "mute", reason, minutes);
+            plugin.getDatabaseManager().addPunishmentWithMessage(player.getUniqueId(), player.getName(), "mute", reason, minutes, originalMessage);
         });
 
         String durationText = formatDuration(minutes);
@@ -104,46 +125,137 @@ public class PunishmentManager {
 
         if (plugin.getConfigManager().isStaffAlertEnabled()) {
             String broadcast = plugin.getLanguageManager().get("punishments.mute.broadcast",
-                "player", player.getName(), "duration", durationText);
+                "player", player.getName(), "duration", durationText, "reason", reason);
             broadcastToStaff(broadcast);
         }
+    }
+
+    public void muteOffline(UUID uuid, String playerName, String reason, int minutes, String originalMessage) {
+        if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String cmd = plugin.getConfigManager().getExternalMuteCommand()
+                .replace("{player}", playerName)
+                .replace("{duration}", formatDurationForCommand(minutes))
+                .replace("{reason}", reason);
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
+        } else {
+            long expiration = -1;
+            if (minutes > 0) {
+                expiration = System.currentTimeMillis() + (minutes * 60000L);
+            }
+            plugin.getPunishmentCache().addMute(uuid, expiration);
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getDatabaseManager().addPunishmentWithMessage(uuid, playerName, "mute", reason, minutes, originalMessage);
+        });
     }
 
     public void unmute(UUID uuid) {
         plugin.getPunishmentCache().removeMute(uuid);
         
+        if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
+            String playerName = offlinePlayer.getName() != null ? offlinePlayer.getName() : uuid.toString();
+            String cmd = plugin.getConfigManager().getExternalUnmuteCommand()
+                .replace("{player}", playerName);
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
+        }
+        
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             plugin.getDatabaseManager().removeMute(uuid);
         });
+
+        Player player = Bukkit.getPlayer(uuid);
+        if (player != null) {
+            player.sendMessage(plugin.getLanguageManager().getPrefixed("punishments.mute.expired"));
+            if (plugin.getConfigManager().isUnmuteNotificationSoundEnabled()) {
+                try {
+                    String soundName = plugin.getConfigManager().getUnmuteNotificationSound();
+                    org.bukkit.Sound sound = org.bukkit.Sound.valueOf(soundName);
+                    player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+                } catch (IllegalArgumentException ignored) {}
+            }
+        }
     }
 
     public void kick(Player player, String reason) {
-        String message = plugin.getLanguageManager().get("punishments.kick.message", "reason", reason);
-        
-        Bukkit.getScheduler().runTask(plugin, () -> player.kickPlayer(message));
+        plugin.getTelemetryManager().recordPunishment("KICK", 0);
+        if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String cmd = plugin.getConfigManager().getExternalKickCommand()
+                .replace("{player}", player.getName())
+                .replace("{reason}", reason);
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
+        } else {
+            String message = plugin.getLanguageManager().get("punishments.kick.message", "reason", reason);
+            Bukkit.getScheduler().runTask(plugin, () -> player.kickPlayer(message));
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getDatabaseManager().addPunishment(player.getUniqueId(), player.getName(), "kick", reason, 0);
+        });
 
         if (plugin.getConfigManager().isStaffAlertEnabled()) {
             String broadcast = plugin.getLanguageManager().get("punishments.kick.broadcast",
-                "player", player.getName());
+                "player", player.getName(), "reason", reason);
             broadcastToStaff(broadcast);
         }
     }
 
     public void ban(Player player, String reason, int minutes) {
-        String durationText = minutes <= 0 ? plugin.getLanguageManager().get("misc.permanent") : formatDuration(minutes);
-        String message = plugin.getLanguageManager().get("punishments.ban.message",
-            "reason", reason, "duration", durationText);
+        ban(player, reason, minutes, null);
+    }
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            player.kick(LegacyComponentSerializer.legacySection().deserialize(message));
-            player.ban(message, minutes > 0 ? java.time.Duration.ofMinutes(minutes) : null, "LoraGuard");
+    public void ban(Player player, String reason, int minutes, String originalMessage) {
+        plugin.getTelemetryManager().recordPunishment("BAN", minutes);
+        String durationText = minutes <= 0 ? plugin.getLanguageManager().get("misc.permanent") : formatDuration(minutes);
+        
+        if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String cmd = plugin.getConfigManager().getExternalBanCommand()
+                .replace("{player}", player.getName())
+                .replace("{duration}", formatDurationForCommand(minutes))
+                .replace("{reason}", reason);
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
+        } else {
+            String message = plugin.getLanguageManager().get("punishments.ban.message",
+                "reason", reason, "duration", durationText);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                player.kick(LegacyComponentSerializer.legacySection().deserialize(message));
+                player.ban(message, minutes > 0 ? java.time.Duration.ofMinutes(minutes) : null, "LoraGuard");
+            });
+        }
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getDatabaseManager().addPunishmentWithMessage(player.getUniqueId(), player.getName(), "ban", reason, minutes, originalMessage);
         });
 
         if (plugin.getConfigManager().isStaffAlertEnabled()) {
             String broadcast = plugin.getLanguageManager().get("punishments.ban.broadcast",
-                "player", player.getName(), "duration", durationText);
+                "player", player.getName(), "duration", durationText, "reason", reason);
             broadcastToStaff(broadcast);
         }
+    }
+
+    public void unban(UUID uuid, String playerName) {
+        if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String cmd = plugin.getConfigManager().getExternalUnbanCommand()
+                .replace("{player}", playerName);
+            Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
+        } else {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Bukkit.getBanList(org.bukkit.BanList.Type.NAME).pardon(playerName);
+            });
+        }
+        
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getDatabaseManager().removeBan(uuid);
+        });
+    }
+
+    private String formatDurationForCommand(int minutes) {
+        if (minutes <= 0) return "permanent";
+        if (minutes < 60) return minutes + "m";
+        if (minutes < 1440) return (minutes / 60) + "h";
+        return (minutes / 1440) + "d";
     }
 
     public boolean isPlayerMuted(UUID uuid) {

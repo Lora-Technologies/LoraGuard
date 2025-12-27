@@ -53,13 +53,13 @@ public class AppealCommand implements CommandExecutor, TabCompleter {
     private void handleCreate(Player player, String[] args) {
         if (args.length < 3) {
             player.sendMessage(plugin.getLanguageManager().getPrefixed("commands.usage",
-                "usage", "/appeal create <mute|ban> <reason>"));
+                "usage", "/appeal create <mute> <reason>"));
             return;
         }
 
         String type = args[1].toLowerCase();
-        if (!type.equals("mute") && !type.equals("ban")) {
-            player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.invalid-type"));
+        if (!type.equals("mute")) {
+            player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.mute-only"));
             return;
         }
 
@@ -70,42 +70,49 @@ public class AppealCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        Appeal existingPending = plugin.getDatabaseManager().getPendingAppeal(player.getUniqueId());
-        if (existingPending != null) {
-            player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.already-pending"));
-            return;
-        }
-
-        boolean hasActivePunishment = false;
-        if (type.equals("mute")) {
-            hasActivePunishment = plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId());
-        } else if (type.equals("ban")) {
-            hasActivePunishment = Bukkit.getBanList(org.bukkit.BanList.Type.NAME)
-                .isBanned(player.getName());
-        }
-
-        if (!hasActivePunishment) {
+        if (!plugin.getPunishmentManager().isPlayerMuted(player.getUniqueId())) {
             player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.no-punishment", "type", type));
             return;
         }
 
         String reason = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
-        int punishmentId = plugin.getDatabaseManager().getLatestPunishmentId(player.getUniqueId(), type);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            Appeal existingPending = plugin.getDatabaseManager().getPendingAppeal(player.getUniqueId());
+            if (existingPending != null) {
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.already-pending")));
+                return;
+            }
 
-        boolean success = plugin.getAppealManager().createAppeal(
-            player.getUniqueId(),
-            player.getName(),
-            punishmentId,
-            type,
-            reason
-        );
+            int punishmentId = plugin.getDatabaseManager().getLatestPunishmentId(player.getUniqueId(), type);
+            if (punishmentId <= 0) {
+                Bukkit.getScheduler().runTask(plugin, () ->
+                    player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.no-punishment", "type", type)));
+                return;
+            }
 
-        if (success) {
-            player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.submitted"));
-        } else {
-            player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.failed"));
-        }
+            String originalMessage = plugin.getDatabaseManager().getPunishmentOriginalMessage(punishmentId);
+
+            int appealId = plugin.getDatabaseManager().createAppealWithMessage(
+                player.getUniqueId(),
+                player.getName(),
+                punishmentId,
+                type,
+                reason,
+                originalMessage
+            );
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (appealId > 0) {
+                    plugin.getCooldownManager().setAppealCooldown(player.getUniqueId());
+                    plugin.getAppealManager().notifyStaffNewAppeal(player.getName(), type, appealId);
+                    player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.submitted"));
+                } else {
+                    player.sendMessage(plugin.getLanguageManager().getPrefixed("appeal.failed"));
+                }
+            });
+        });
     }
 
     private void handleStatus(Player player) {
@@ -175,7 +182,7 @@ public class AppealCommand implements CommandExecutor, TabCompleter {
                 .collect(Collectors.toList());
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("create") || args[0].equalsIgnoreCase("olustur") || args[0].equalsIgnoreCase("oluştur"))) {
-            return Arrays.asList("mute", "ban")
+            return Arrays.asList("mute")
                 .stream()
                 .filter(s -> s.toLowerCase().startsWith(args[1].toLowerCase()))
                 .collect(Collectors.toList());

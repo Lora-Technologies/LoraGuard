@@ -62,7 +62,14 @@ public class ReportCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(plugin.getLanguageManager().getPrefixed("commands.report.sent"));
         plugin.getCooldownManager().setReportCooldown(player.getUniqueId());
 
+        Player finalTarget = target;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            int reportId = plugin.getDatabaseManager().createReport(
+                player.getUniqueId(), player.getName(),
+                finalTarget.getUniqueId(), finalTarget.getName(),
+                reason, lastMessage
+            );
+
             boolean punished = false;
 
             if (lastMessage != null) {
@@ -73,8 +80,11 @@ public class ReportCommand implements CommandExecutor, TabCompleter {
                     if (response != null && response.getResults() != null && !response.getResults().isEmpty()) {
                         ModerationResponse.Result result = response.getResults().get(0);
                         if (result.isFlagged()) {
-                            plugin.getPunishmentManager().handleViolation(target, result.getHighestCategory(), result.getHighestScore(), lastMessage);
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                plugin.getPunishmentManager().handleViolation(finalTarget, result.getHighestCategory(), result.getHighestScore(), lastMessage);
+                            });
                             punished = true;
+                            plugin.getDatabaseManager().updateReportStatus(reportId, "auto_punished", "System", result.getHighestCategory());
                         }
                     }
                 } catch (Exception e) {
@@ -84,10 +94,26 @@ public class ReportCommand implements CommandExecutor, TabCompleter {
                 }
             }
 
-            plugin.getDiscordHook().sendReport(player, target, reason, lastMessage, punished);
+            plugin.getDiscordHook().sendReport(player, finalTarget, reason, lastMessage, punished);
+            
+            notifyStaff(player.getName(), finalTarget.getName(), reportId);
         });
 
         return true;
+    }
+
+    private void notifyStaff(String reporterName, String reportedName, int reportId) {
+        String permission = plugin.getConfigManager().getStaffPermission();
+        String message = plugin.getLanguageManager().getPrefixed("commands.report.staff-notify",
+            "reporter", reporterName, "reported", reportedName, "id", String.valueOf(reportId));
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (Player staff : Bukkit.getOnlinePlayers()) {
+                if (staff.hasPermission(permission)) {
+                    staff.sendMessage(message);
+                }
+            }
+        });
     }
 
     @Override
