@@ -30,7 +30,21 @@ public class LoraApiClient {
     }
 
     public CompletableFuture<ModerationResponse> moderate(String message) {
+        boolean debug = plugin.getConfigManager().isDebug();
+        long requestStartTime = System.currentTimeMillis();
+        
+        if (debug) {
+            plugin.getLogger().info("[DEBUG-API] ========== NEW MODERATION REQUEST ==========");
+            plugin.getLogger().info("[DEBUG-API] Message: \"" + message + "\"");
+            plugin.getLogger().info("[DEBUG-API] Message Length: " + message.length() + " chars");
+            plugin.getLogger().info("[DEBUG-API] Entering moderate() method...");
+        }
+        
         if (isCircuitOpen()) {
+            if (debug) {
+                plugin.getLogger().warning("[DEBUG-API] Circuit breaker is OPEN - skipping API call");
+                plugin.getLogger().warning("[DEBUG-API] Failure count: " + failureCount + ", Last failure: " + (System.currentTimeMillis() - lastFailureTime) + "ms ago");
+            }
             return CompletableFuture.completedFuture(null);
         }
 
@@ -44,6 +58,19 @@ public class LoraApiClient {
             );
 
             String jsonBody = gson.toJson(request);
+            String apiUrl = plugin.getConfigManager().getApiBaseUrl() + "/moderations";
+            String apiKey = plugin.getConfigManager().getApiKey();
+            int timeout = plugin.getConfigManager().getApiTimeout();
+            
+            if (debug) {
+                plugin.getLogger().info("[DEBUG-API] Target URL: " + apiUrl);
+                plugin.getLogger().info("[DEBUG-API] Model: " + plugin.getConfigManager().getApiModel());
+                plugin.getLogger().info("[DEBUG-API] Threshold: " + plugin.getConfigManager().getApiThreshold());
+                plugin.getLogger().info("[DEBUG-API] Timeout Config: " + timeout + "ms");
+                plugin.getLogger().info("[DEBUG-API] API Key Present: " + (apiKey != null && !apiKey.isEmpty()));
+                plugin.getLogger().info("[DEBUG-API] API Key Length: " + (apiKey != null ? apiKey.length() : 0));
+                plugin.getLogger().info("[DEBUG-API] Request Body: " + jsonBody);
+            }
             
             RequestBody body = RequestBody.create(
                 jsonBody,
@@ -51,17 +78,27 @@ public class LoraApiClient {
             );
 
             Request httpRequest = new Request.Builder()
-                .url(plugin.getConfigManager().getApiBaseUrl() + "/moderations")
-                .addHeader("Authorization", "Bearer " + plugin.getConfigManager().getApiKey())
+                .url(apiUrl)
+                .addHeader("Authorization", "Bearer " + apiKey)
                 .addHeader("Content-Type", "application/json")
                 .post(body)
                 .build();
 
+            if (debug) {
+                plugin.getLogger().info("[DEBUG-API] Sending HTTP request...");
+            }
+
             httpClient.newCall(httpRequest).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    if (plugin.getConfigManager().isDebug()) {
-                        plugin.getLogger().warning("API request failed: " + e.getMessage());
+                    long elapsed = System.currentTimeMillis() - requestStartTime;
+                    plugin.getLogger().warning("[DEBUG-API] ========== REQUEST FAILED ==========");
+                    plugin.getLogger().warning("[DEBUG-API] Error Type: " + e.getClass().getSimpleName());
+                    plugin.getLogger().warning("[DEBUG-API] Error Message: " + e.getMessage());
+                    plugin.getLogger().warning("[DEBUG-API] Elapsed Time: " + elapsed + "ms");
+                    plugin.getLogger().warning("[DEBUG-API] URL: " + call.request().url());
+                    if (e.getCause() != null) {
+                        plugin.getLogger().warning("[DEBUG-API] Cause: " + e.getCause().getMessage());
                     }
                     recordFailure();
                     future.complete(null);
@@ -69,11 +106,21 @@ public class LoraApiClient {
 
                 @Override
                 public void onResponse(Call call, Response response) {
+                    long elapsed = System.currentTimeMillis() - requestStartTime;
                     try (response) {
+                        if (debug) {
+                            plugin.getLogger().info("[DEBUG-API] ========== RESPONSE RECEIVED ==========");
+                            plugin.getLogger().info("[DEBUG-API] HTTP Status: " + response.code() + " " + response.message());
+                            plugin.getLogger().info("[DEBUG-API] Response Time: " + elapsed + "ms");
+                            plugin.getLogger().info("[DEBUG-API] Protocol: " + response.protocol());
+                        }
+                        
                         if (!response.isSuccessful()) {
-                            if (plugin.getConfigManager().isDebug()) {
-                                plugin.getLogger().warning("API error: " + response.code());
-                            }
+                            String errorBody = response.body() != null ? response.body().string() : "(empty)";
+                            plugin.getLogger().warning("[DEBUG-API] ========== API ERROR ==========");
+                            plugin.getLogger().warning("[DEBUG-API] HTTP Status: " + response.code());
+                            plugin.getLogger().warning("[DEBUG-API] Error Body: " + errorBody);
+                            plugin.getLogger().warning("[DEBUG-API] Response Time: " + elapsed + "ms");
                             recordFailure();
                             future.complete(null);
                             return;
@@ -82,18 +129,34 @@ public class LoraApiClient {
                         resetFailure();
                         String responseBody = response.body() != null ? response.body().string() : "";
                         
-                        if (plugin.getConfigManager().isDebug()) {
-                            plugin.getLogger().info("[DEBUG] API Response: " + responseBody);
+                        if (debug) {
+                            plugin.getLogger().info("[DEBUG-API] Response Body: " + responseBody);
+                            plugin.getLogger().info("[DEBUG-API] Response Body Length: " + responseBody.length() + " chars");
                         }
                         
-                        future.complete(gson.fromJson(responseBody, ModerationResponse.class));
+                        ModerationResponse moderationResponse = gson.fromJson(responseBody, ModerationResponse.class);
+                        
+                        if (debug) {
+                            plugin.getLogger().info("[DEBUG-API] Parsed Successfully: " + (moderationResponse != null));
+                            if (moderationResponse != null && moderationResponse.getResults() != null) {
+                                plugin.getLogger().info("[DEBUG-API] Results Count: " + moderationResponse.getResults().size());
+                            }
+                        }
+                        
+                        future.complete(moderationResponse);
                     } catch (Exception e) {
+                        plugin.getLogger().severe("[DEBUG-API] ========== PARSE ERROR ==========");
+                        plugin.getLogger().severe("[DEBUG-API] Exception: " + e.getClass().getSimpleName());
+                        plugin.getLogger().severe("[DEBUG-API] Message: " + e.getMessage());
                         future.completeExceptionally(e);
                     }
                 }
             });
 
         } catch (Exception e) {
+            plugin.getLogger().severe("[DEBUG-API] ========== REQUEST BUILD ERROR ==========");
+            plugin.getLogger().severe("[DEBUG-API] Exception: " + e.getClass().getSimpleName());
+            plugin.getLogger().severe("[DEBUG-API] Message: " + e.getMessage());
             future.completeExceptionally(e);
         }
         

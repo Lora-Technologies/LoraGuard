@@ -911,6 +911,32 @@ public class DatabaseManager {
         return false;
     }
 
+    public boolean hasActiveMute(UUID uuid) {
+        String sql = "SELECT id, duration, timestamp FROM punishments WHERE uuid = ? AND type = 'mute' AND active = TRUE ORDER BY timestamp DESC LIMIT 1";
+        try (Connection conn = getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, uuid.toString());
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int duration = rs.getInt("duration");
+                if (duration <= 0) {
+                    return true;
+                }
+                Timestamp timestamp = rs.getTimestamp("timestamp");
+                long expireTime = timestamp.getTime() + (duration * 60000L);
+                if (System.currentTimeMillis() < expireTime) {
+                    return true;
+                } else {
+                    removeMute(uuid);
+                    return false;
+                }
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to check active mute", e);
+        }
+        return false;
+    }
+
     public static class Report {
         public final int id;
         public final UUID reporterUuid;

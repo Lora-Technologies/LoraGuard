@@ -13,13 +13,10 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 public class ChatListener implements Listener {
 
     private final LoraGuard plugin;
-    private static final long API_TIMEOUT_MS = 2000;
 
     public ChatListener(LoraGuard plugin) {
         this.plugin = plugin;
@@ -100,28 +97,50 @@ public class ChatListener implements Listener {
         }
 
         final String finalMessage = message;
+        final boolean debug = plugin.getConfigManager().isDebug();
+        final long apiTimeoutMs = plugin.getConfigManager().getApiTimeout();
+        
+        if (debug) {
+            plugin.getLogger().info("[DEBUG-CHAT] ========== PROCESSING MESSAGE ==========");
+            plugin.getLogger().info("[DEBUG-CHAT] Player: " + player.getName() + " (" + player.getUniqueId() + ")");
+            plugin.getLogger().info("[DEBUG-CHAT] Message: \"" + finalMessage + "\"");
+            plugin.getLogger().info("[DEBUG-CHAT] API Timeout: " + apiTimeoutMs + "ms");
+            plugin.getLogger().info("[DEBUG-CHAT] API Available: " + plugin.getApiClient().isApiAvailable());
+        }
         
         plugin.getTelemetryManager().recordMessageProcessed();
         
-        try {
-            long startTime = System.currentTimeMillis();
-            CompletableFuture<ModerationResponse> future = plugin.getApiClient().moderate(finalMessage);
-            ModerationResponse response = future.get(API_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        long startTime = System.currentTimeMillis();
+        
+        if (debug) {
+            plugin.getLogger().info("[DEBUG-CHAT] Calling API at: " + startTime);
+        }
+        
+        plugin.getApiClient().moderate(finalMessage).thenAcceptAsync(response -> {
             long responseTime = System.currentTimeMillis() - startTime;
+            
+            if (debug) {
+                plugin.getLogger().info("[DEBUG-CHAT] API Response Time: " + responseTime + "ms");
+                plugin.getLogger().info("[DEBUG-CHAT] Response: " + (response != null ? "received" : "null"));
+            }
             
             plugin.getTelemetryManager().recordApiCall(response != null, responseTime);
             
             if (response == null || response.getResults() == null || response.getResults().isEmpty()) {
+                if (debug) {
+                    plugin.getLogger().warning("[DEBUG-CHAT] Empty response - no action taken");
+                }
                 return;
             }
 
             ModerationResponse.Result result = response.getResults().get(0);
             
-            if (plugin.getConfigManager().isDebug()) {
-                plugin.getLogger().info("[DEBUG] Message: " + finalMessage);
-                plugin.getLogger().info("[DEBUG] Flagged: " + result.isFlagged());
-                plugin.getLogger().info("[DEBUG] Categories: " + result.getFlaggedCategories());
-                plugin.getLogger().info("[DEBUG] Highest: " + result.getHighestCategory() + " (" + result.getHighestScore() + ")");
+            if (debug) {
+                plugin.getLogger().info("[DEBUG-CHAT] ========== MODERATION RESULT ==========");
+                plugin.getLogger().info("[DEBUG-CHAT] Flagged: " + result.isFlagged());
+                plugin.getLogger().info("[DEBUG-CHAT] Flagged Categories: " + result.getFlaggedCategories());
+                plugin.getLogger().info("[DEBUG-CHAT] Highest: " + result.getHighestCategory() + " (" + result.getHighestScore() + ")");
+                plugin.getLogger().info("[DEBUG-CHAT] Enabled Categories: " + plugin.getConfigManager().getEnabledCategories());
             }
             
             plugin.getMessageCache().put(finalMessage, result);
@@ -132,12 +151,15 @@ public class ChatListener implements Listener {
                 
                 boolean shouldBlock = flaggedCategories.stream().anyMatch(enabledCategories::contains);
 
+                if (debug) {
+                    plugin.getLogger().info("[DEBUG-CHAT] Should Block: " + shouldBlock);
+                }
+
                 if (shouldBlock) {
-                    boolean passthrough = plugin.getConfigManager().isPassthroughModeEnabled();
-                    if (!passthrough) {
-                        event.setCancelled(true);
-                        player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.blocked"));
+                    if (debug) {
+                        plugin.getLogger().info("[DEBUG-CHAT] Violation recorded (async mode)");
                     }
+                    
                     plugin.getPunishmentManager().handleViolation(
                         player, 
                         result.getHighestCategory(), 
@@ -145,14 +167,26 @@ public class ChatListener implements Listener {
                         finalMessage
                     );
                     plugin.getTelemetryManager().recordViolation(result.getHighestCategory());
+                } else {
+                    if (debug) {
+                        plugin.getLogger().info("[DEBUG-CHAT] Flagged but category not enabled - no action");
+                    }
+                }
+            } else {
+                if (debug) {
+                    plugin.getLogger().info("[DEBUG-CHAT] Not flagged - no action");
                 }
             }
-        } catch (Exception e) {
-            plugin.getTelemetryManager().recordApiCall(false, API_TIMEOUT_MS);
-            plugin.getTelemetryManager().getErrorCollector().captureException(e, "ChatListener.onChat");
-            if (plugin.getConfigManager().isDebug()) {
-                plugin.getLogger().warning("API check timeout/error for message: " + e.getMessage());
+        }).exceptionally(ex -> {
+            long responseTime = System.currentTimeMillis() - startTime;
+            if (debug) {
+                plugin.getLogger().warning("[DEBUG-CHAT] ========== ASYNC ERROR ==========");
+                plugin.getLogger().warning("[DEBUG-CHAT] Type: " + ex.getClass().getSimpleName());
+                plugin.getLogger().warning("[DEBUG-CHAT] Message: " + ex.getMessage());
             }
-        }
+            plugin.getTelemetryManager().recordApiCall(false, responseTime);
+            plugin.getTelemetryManager().getErrorCollector().captureException(ex, "ChatListener.async");
+            return null;
+        });
     }
 }

@@ -11,7 +11,7 @@ gradle-8.12.zip
 *.ipr
 *.iws
 out/
-
+backend/
 # IDE - Eclipse
 .classpath
 .project

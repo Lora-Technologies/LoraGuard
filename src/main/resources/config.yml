@@ -35,7 +35,7 @@ api:
   
   # API request timeout in milliseconds
   # Milisaniye cinsinden API istek zaman aşımı
-  timeout: 3000
+  timeout: 10000
   
   # Circuit Breaker settings
   # Devre kesici ayarları (API hatalarında sistemi korumak için)

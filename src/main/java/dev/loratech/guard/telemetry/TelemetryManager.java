@@ -196,9 +196,7 @@ public class TelemetryManager {
                 sendTelemetry(events, systemInfo, version, bukkitVersion, javaVersion);
             });
         } catch (Exception e) {
-            if (plugin.getConfigManager().isDebug()) {
-                plugin.getLogger().warning("[Telemetry] Failed to prepare: " + e.getMessage());
-            }
+            plugin.getLogger().warning("[Telemetry] Failed to prepare: " + e.getMessage());
         }
     }
 
@@ -214,11 +212,10 @@ public class TelemetryManager {
                 events
             );
 
+            plugin.getLogger().info("[Telemetry] Sending " + events.size() + " events...");
             client.sendAsync(payload, null);
         } catch (Exception e) {
-            if (plugin.getConfigManager().isDebug()) {
-                plugin.getLogger().warning("[Telemetry] Failed to send: " + e.getMessage());
-            }
+            plugin.getLogger().warning("[Telemetry] Failed to send: " + e.getMessage());
         }
     }
 

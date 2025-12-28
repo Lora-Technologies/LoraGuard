@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 public class TelemetryClient {
 
     private static final String TELEMETRY_BASE_URL = "https://x.loratech.dev";
-    private static final String TELEMETRY_ENDPOINT = "/telemetry";
+    private static final String TELEMETRY_ENDPOINT = "/api/telemetry";
     
     private final LoraGuard plugin;
     private final OkHttpClient httpClient;
@@ -46,9 +46,7 @@ public class TelemetryClient {
             httpClient.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    if (plugin.getConfigManager().isDebug()) {
-                        plugin.getLogger().warning("[Telemetry] Send failed: " + e.getMessage());
-                    }
+                    plugin.getLogger().warning("[Telemetry] Send failed: " + e.getMessage());
                     if (callback != null) {
                         callback.onFailure(e);
                     }
@@ -58,16 +56,12 @@ public class TelemetryClient {
                 public void onResponse(Call call, Response response) {
                     try (response) {
                         if (response.isSuccessful()) {
-                            if (plugin.getConfigManager().isDebug()) {
-                                plugin.getLogger().info("[Telemetry] Data sent successfully");
-                            }
+                            plugin.getLogger().info("[Telemetry] Data sent successfully (" + response.code() + ")");
                             if (callback != null) {
                                 callback.onSuccess();
                             }
                         } else {
-                            if (plugin.getConfigManager().isDebug()) {
-                                plugin.getLogger().warning("[Telemetry] Server responded with: " + response.code());
-                            }
+                            plugin.getLogger().warning("[Telemetry] Server responded with: " + response.code());
                             if (callback != null) {
                                 callback.onFailure(new IOException("HTTP " + response.code()));
                             }
@@ -76,9 +70,7 @@ public class TelemetryClient {
                 }
             });
         } catch (Exception e) {
-            if (plugin.getConfigManager().isDebug()) {
-                plugin.getLogger().warning("[Telemetry] Error: " + e.getMessage());
-            }
+            plugin.getLogger().warning("[Telemetry] Error: " + e.getMessage());
             if (callback != null) {
                 callback.onFailure(e);
             }
