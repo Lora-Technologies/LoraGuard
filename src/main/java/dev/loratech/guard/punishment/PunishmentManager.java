@@ -259,13 +259,10 @@ public class PunishmentManager {
     }
 
     public boolean isPlayerMuted(UUID uuid) {
-        if (plugin.getPunishmentCache().isMuted(uuid)) {
-            return true;
-        }
         if (plugin.getConfigManager().isExternalCommandsEnabled()) {
-            return plugin.getDatabaseManager().hasActiveMute(uuid);
+            return false;
         }
-        return false;
+        return plugin.getPunishmentCache().isMuted(uuid);
     }
 
     public String getMuteRemainingFormatted(UUID uuid) {
