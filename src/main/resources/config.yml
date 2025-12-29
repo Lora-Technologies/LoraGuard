@@ -141,7 +141,7 @@ punishments:
   
   # Message passthrough - send message but still apply punishment
   # Mesaj geçişi - mesajı gönder ama yine de ceza uygula
-  passthrough-mode: false
+  passthrough-mode: true
   
   # External punishment system integration
   # Harici ceza sistemi entegrasyonu
