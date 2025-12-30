@@ -34,20 +34,25 @@ public class FilterManager {
     public FilterResult check(Player player, String message) {
         plugin.getTelemetryManager().recordFilterCheck();
         
-        if (plugin.getConfigManager().isAntiSpamEnabled()) {
-            FilterResult spamResult = checkSpam(player, message);
-            if (!spamResult.isAllowed()) {
-                plugin.getTelemetryManager().recordFilterTrigger("SPAM");
-                return spamResult;
+        // Synchronize on the player's history list to prevent race conditions (spam burst bypass)
+        List<MessageRecord> history = getOrCreateHistory(player.getUniqueId());
+        synchronized (history) {
+            if (plugin.getConfigManager().isAntiSpamEnabled()) {
+                FilterResult spamResult = checkSpam(player, message, history);
+                if (!spamResult.isAllowed()) {
+                    plugin.getTelemetryManager().recordFilterTrigger("SPAM");
+                    return spamResult;
+                }
             }
-        }
 
-        if (plugin.getConfigManager().isAntiFloodEnabled()) {
-            FilterResult floodResult = checkFlood(player);
-            if (!floodResult.isAllowed()) {
-                plugin.getTelemetryManager().recordFilterTrigger("FLOOD");
-                return floodResult;
-            }
+            if (plugin.getConfigManager().isAntiFloodEnabled()) {
+                FilterResult floodResult = checkFlood(player, history);
+                if (!floodResult.isAllowed()) {
+                    plugin.getTelemetryManager().recordFilterTrigger("FLOOD");
+                    return floodResult;
+                }
+            }            
+            recordMessage(player.getUniqueId(), message, history);
         }
 
         if (plugin.getConfigManager().isLinkFilterEnabled()) {
@@ -74,12 +79,10 @@ public class FilterManager {
             }
         }
 
-        recordMessage(player.getUniqueId(), message);
         return FilterResult.allow();
     }
 
-    private FilterResult checkSpam(Player player, String message) {
-        List<MessageRecord> history = getOrCreateHistory(player.getUniqueId());
+    private FilterResult checkSpam(Player player, String message, List<MessageRecord> history) {
         cleanOldMessages(history, plugin.getConfigManager().getAntiSpamTimeframe());
 
         String normalizedMessage = message.toLowerCase().trim();
@@ -94,8 +97,7 @@ public class FilterManager {
         return FilterResult.allow();
     }
 
-    private FilterResult checkFlood(Player player) {
-        List<MessageRecord> history = getOrCreateHistory(player.getUniqueId());
+    private FilterResult checkFlood(Player player, List<MessageRecord> history) {
         cleanOldMessages(history, plugin.getConfigManager().getAntiFloodTimeframe());
 
         if (history.size() >= plugin.getConfigManager().getAntiFloodMaxMessages()) {
@@ -168,8 +170,8 @@ public class FilterManager {
         return messageHistory.computeIfAbsent(uuid, k -> new CopyOnWriteArrayList<>());
     }
 
-    private void recordMessage(UUID uuid, String message) {
-        getOrCreateHistory(uuid).add(new MessageRecord(message, System.currentTimeMillis()));
+    private void recordMessage(UUID uuid, String message, List<MessageRecord> history) {
+        history.add(new MessageRecord(message, System.currentTimeMillis()));
     }
 
     private void cleanOldMessages(List<MessageRecord> history, int seconds) {

@@ -22,6 +22,7 @@ public class DatabaseManager {
 
     private final LoraGuard plugin;
     private HikariDataSource dataSource;
+    private boolean isCircuitBreakerOpen = false;
 
     public DatabaseManager(LoraGuard plugin) {
         this.plugin = plugin;
@@ -177,8 +178,20 @@ public class DatabaseManager {
     }
 
     private void captureDbError(SQLException e, String context) {
+        if (isCircuitBreakerOpen) return;
+        
+        if (e.getSQLState() != null && e.getSQLState().startsWith("08")) {
+            isCircuitBreakerOpen = true;
+            plugin.getLogger().severe("Database circuit breaker opened! Connection lost.");
+            org.bukkit.Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> isCircuitBreakerOpen = false, 6000L);
+        }
+
         if (plugin.getTelemetryManager() != null) {
-            plugin.getTelemetryManager().getErrorCollector().captureException(e, "DatabaseManager." + context);
+            try {
+                plugin.getTelemetryManager().getErrorCollector().captureException(e, "DatabaseManager." + context);
+            } catch (Exception ignored) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to capture DB error in telemetry: " + context, ignored);
+            }
         }
     }
 

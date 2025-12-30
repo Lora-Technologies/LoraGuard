@@ -43,6 +43,7 @@ public class PunishmentManager {
 
         notifyStaff(player, message, translatedCategory, score);
         plugin.getDiscordHook().sendViolation(player, message, category, score);
+        plugin.getTelemetryManager().recordViolationLog(player, message, category, score, actionTaken);
     }
 
     private String determinePunishment(int points) {
@@ -101,10 +102,11 @@ public class PunishmentManager {
     public void mute(Player player, String reason, int minutes, String originalMessage) {
         plugin.getTelemetryManager().recordPunishment("MUTE", minutes);
         if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String sanitizedReason = reason.replace("\"", "").replace("'", "").replace(";", "");
             String cmd = plugin.getConfigManager().getExternalMuteCommand()
                 .replace("{player}", player.getName())
                 .replace("{duration}", formatDurationForCommand(minutes))
-                .replace("{reason}", reason);
+                .replace("{reason}", sanitizedReason);
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
         } else {
             long expiration = -1;
@@ -132,10 +134,11 @@ public class PunishmentManager {
 
     public void muteOffline(UUID uuid, String playerName, String reason, int minutes, String originalMessage) {
         if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String sanitizedReason = reason.replace("\"", "").replace("'", "").replace(";", "");
             String cmd = plugin.getConfigManager().getExternalMuteCommand()
                 .replace("{player}", playerName)
                 .replace("{duration}", formatDurationForCommand(minutes))
-                .replace("{reason}", reason);
+                .replace("{reason}", sanitizedReason);
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
         } else {
             long expiration = -1;
@@ -181,9 +184,10 @@ public class PunishmentManager {
     public void kick(Player player, String reason) {
         plugin.getTelemetryManager().recordPunishment("KICK", 0);
         if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String sanitizedReason = reason.replace("\"", "").replace("'", "").replace(";", "");
             String cmd = plugin.getConfigManager().getExternalKickCommand()
                 .replace("{player}", player.getName())
-                .replace("{reason}", reason);
+                .replace("{reason}", sanitizedReason);
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
         } else {
             String message = plugin.getLanguageManager().get("punishments.kick.message", "reason", reason);
@@ -210,10 +214,11 @@ public class PunishmentManager {
         String durationText = minutes <= 0 ? plugin.getLanguageManager().get("misc.permanent") : formatDuration(minutes);
         
         if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            String sanitizedReason = reason.replace("\"", "").replace("'", "").replace(";", "");
             String cmd = plugin.getConfigManager().getExternalBanCommand()
                 .replace("{player}", player.getName())
                 .replace("{duration}", formatDurationForCommand(minutes))
-                .replace("{reason}", reason);
+                .replace("{reason}", sanitizedReason);
             Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd));
         } else {
             String message = plugin.getLanguageManager().get("punishments.ban.message",

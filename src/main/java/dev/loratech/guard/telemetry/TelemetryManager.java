@@ -119,6 +119,28 @@ public class TelemetryManager {
         }
     }
 
+    public void recordViolationLog(org.bukkit.entity.Player player, String message, String category, double score, String action) {
+        if (plugin.getConfigManager().isTelemetryUsageEnabled()) {
+            Map<String, Object> context = new HashMap<>();
+            context.put("ping", player.getPing());
+            context.put("world", player.getWorld().getName());
+            context.put("x", player.getLocation().getBlockX());
+            context.put("y", player.getLocation().getBlockY());
+            context.put("z", player.getLocation().getBlockZ());
+            context.put("tps", Bukkit.getTPS()[0]);
+            
+            TelemetryEvent event = new TelemetryEvent(TelemetryEvent.EventType.VIOLATION_LOG)
+                .addData("player_uuid", player.getUniqueId().toString())
+                .addData("player_name", player.getName())
+                .addData("message", message)
+                .addData("category", category)
+                .addData("score", score)
+                .addData("action", action)
+                .addData("context", context);
+            usageEvents.offer(event);
+        }
+    }
+
     public void recordFilterTrigger(String filterType) {
         filterStatsCollector.recordFilterTrigger(filterType);
     }

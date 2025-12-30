@@ -20,7 +20,8 @@ public class TelemetryEvent {
         CONFIG,
         FEATURE,
         CATEGORY_STATS,
-        HOURLY_STATS
+        HOURLY_STATS,
+        VIOLATION_LOG
     }
 
     @SerializedName("type")
