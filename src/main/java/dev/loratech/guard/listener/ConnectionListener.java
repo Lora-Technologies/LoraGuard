@@ -19,6 +19,10 @@ public class ConnectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent event) {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+                return;
+            }
+
             if (plugin.getPunishmentCache().checkAndNotifyUnmute(event.getPlayer().getUniqueId())) {
                 event.getPlayer().sendMessage(plugin.getLanguageManager().getPrefixed("punishments.mute.expired"));
                 if (plugin.getConfigManager().isUnmuteNotificationSoundEnabled()) {
@@ -30,7 +34,7 @@ public class ConnectionListener implements Listener {
                 }
             } else if (plugin.getPunishmentManager().isPlayerMuted(event.getPlayer().getUniqueId())) {
                 String remaining = plugin.getPunishmentManager().getMuteRemainingFormatted(event.getPlayer().getUniqueId());
-                event.getPlayer().sendMessage(plugin.getLanguageManager().getPrefixed("punishments.mute.still-muted", 
+                event.getPlayer().sendMessage(plugin.getLanguageManager().getPrefixed("punishments.mute.still-muted",
                     "remaining", remaining));
             }
         }, 20L);

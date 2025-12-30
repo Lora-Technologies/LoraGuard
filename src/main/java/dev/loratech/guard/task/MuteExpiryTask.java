@@ -18,6 +18,10 @@ public class MuteExpiryTask extends BukkitRunnable {
 
     @Override
     public void run() {
+        if (plugin.getConfigManager().isExternalCommandsEnabled()) {
+            return;
+        }
+
         try {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 UUID uuid = player.getUniqueId();

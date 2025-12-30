@@ -81,7 +81,9 @@ public class ChatListener implements Listener {
             String normalizedMessage = TextUtil.normalizeText(message);
             for (String word : plugin.getConfigManager().getBlacklistedWords()) {
                 String normalizedWord = TextUtil.normalizeText(word);
-                if (normalizedMessage.contains(normalizedWord)) {
+                // Use word boundaries to avoid false positives (e.g. "ez" inside "yemezler")
+                // \\b matches word boundaries
+                if (java.util.regex.Pattern.compile("(?i)\\b" + java.util.regex.Pattern.quote(normalizedWord) + "\\b").matcher(normalizedMessage).find()) {
                     if (!passthrough) {
                         event.setCancelled(true);
                         player.sendMessage(plugin.getLanguageManager().getPrefixed("moderation.blocked"));
@@ -126,18 +128,38 @@ public class ChatListener implements Listener {
 
             if (result.isFlagged()) {
                 List<String> enabledCategories = plugin.getConfigManager().getEnabledCategories();
-                List<String> flaggedCategories = result.getFlaggedCategories();
+                java.util.Map<String, Double> categoryThresholds = plugin.getConfigManager().getCategoryThresholds();
+                double globalThreshold = plugin.getConfigManager().getApiThreshold();
                 
-                boolean shouldBlock = flaggedCategories.stream().anyMatch(enabledCategories::contains);
+                String bestCategory = null;
+                double bestScore = -1.0;
 
-                if (shouldBlock) {
+                for (java.util.Map.Entry<String, Double> entry : result.getCategoryScores().entrySet()) {
+                    String category = entry.getKey();
+                    Double score = entry.getValue();
+
+                    if (!enabledCategories.contains(category)) {
+                        continue;
+                    }
+
+                    double threshold = categoryThresholds.getOrDefault(category, globalThreshold);
+
+                    if (score >= threshold) {
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestCategory = category;
+                        }
+                    }
+                }
+
+                if (bestCategory != null) {
                     plugin.getPunishmentManager().handleViolation(
                         player,
-                        result.getHighestCategory(),
-                        result.getHighestScore(),
+                        bestCategory,
+                        bestScore,
                         finalMessage
                     );
-                    plugin.getTelemetryManager().recordViolation(result.getHighestCategory());
+                    plugin.getTelemetryManager().recordViolation(bestCategory);
                 }
             }
         }).exceptionally(ex -> {

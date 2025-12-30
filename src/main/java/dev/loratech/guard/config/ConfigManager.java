@@ -131,6 +131,16 @@ public class ConfigManager {
         return map;
     }
 
+    public Map<String, Double> getCategoryThresholds() {
+        Map<String, Double> map = new HashMap<>();
+        if (config.getConfigurationSection("punishments.category-thresholds") != null) {
+            for (String key : config.getConfigurationSection("punishments.category-thresholds").getKeys(false)) {
+                map.put(key, config.getDouble("punishments.category-thresholds." + key, 0.5));
+            }
+        }
+        return map;
+    }
+
     public int getViolationCooldownHours() {
         return config.getInt("punishments.violation-cooldown-hours", 24);
     }

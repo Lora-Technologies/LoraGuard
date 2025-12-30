@@ -119,6 +119,13 @@ punishments:
     irl_trading: 2
     blacklist: 3
 
+  # Custom confidence thresholds for specific categories (0.0 - 1.0)
+  # Overrides the global "api.threshold" for these categories
+  # Belirli kategoriler için özel güven eşikleri (0.0 - 1.0)
+  category-thresholds:
+    inappropriate_username: 0.85
+    profanity: 0.80
+    
   # Time in hours before a violation count decreases
   # İhlal sayısının azalması için geçmesi gereken saat
   violation-cooldown-hours: 24
